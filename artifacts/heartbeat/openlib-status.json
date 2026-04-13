@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-03-27T16:26:51.889Z",
+  "summary": {
+    "checks": 8,
+    "passed": 8,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "id": "providers-registry-exists",
+      "label": "Providers registry exists",
+      "status": "pass",
+      "details": "data/providers.registry.json"
+    },
+    {
+      "id": "providers-registry-counts",
+      "label": "Providers registry has counts",
+      "status": "pass",
+      "details": "providers=100, files=100"
+    },
+    {
+      "id": "providers-registry-sisis",
+      "label": "SISIS provider present",
+      "status": "pass",
+      "details": "sisis=8"
+    },
+    {
+      "id": "providers-registry-vufind",
+      "label": "VuFind provider present",
+      "status": "pass",
+      "details": "vufind=1"
+    },
+    {
+      "id": "provider-status-artifact",
+      "label": "Provider status artifact exists",
+      "status": "pass",
+      "details": "artifacts/provider-status/status.json"
+    },
+    {
+      "id": "persistence-keys",
+      "label": "Persistence keys and schemas are wired",
+      "status": "pass",
+      "details": "storageKeys present; store references present"
+    },
+    {
+      "id": "mvp-screens",
+      "label": "MVP screens present (search/account/reminders)",
+      "status": "pass",
+      "details": "All required files present."
+    },
+    {
+      "id": "mvp-stores",
+      "label": "MVP stores present (search/account/reminders)",
+      "status": "pass",
+      "details": "All required files present."
+    }
+  ]
+}

@@ -1,0 +1,2296 @@
+{
+  "generatedAt": "2026-03-27T08:57:33.867Z",
+  "source": {
+    "repository": "opacapp/opacapp-config-files",
+    "ref": "master",
+    "path": "bibs/*.json"
+  },
+  "totals": {
+    "files": 100,
+    "providers": 100,
+    "issues": 0
+  },
+  "providers": [
+    {
+      "id": "9325",
+      "title": "A. B. v. Stettensches Institut",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.winbiap.de/stetten-institut",
+      "authHint": "opac",
+      "location": {
+        "city": "Augsburg",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          48.37419,
+          10.88845
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Augsburg_A._B._v._Stettensches_Institut.json",
+        "file": "Augsburg_A._B._v._Stettensches_Institut.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8840",
+      "title": "Behördenbibliotheken",
+      "api": "sisis",
+      "baseUrl": "https://sdvoz2.bib-bvb.de/InfoGuideClient.sdvsis",
+      "authHint": "opac",
+      "location": {
+        "city": "Bibliotheksverbund",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          53.0792962,
+          8.8016937
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bayern_behoerden.json",
+        "file": "Bayern_behoerden.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8829",
+      "title": "Bibliothek der Hochschule",
+      "api": "touchpoint",
+      "baseUrl": "https://infoguide.hs-augsburg.de/TouchPoint",
+      "authHint": "opac",
+      "location": {
+        "city": "Augsburg",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          48.355194,
+          10.903389
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Augsburg_FH.json",
+        "file": "Augsburg_FH.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "9313",
+      "title": "Bibliothek im Beruflichen Schulzentrum",
+      "api": "bibliotheca",
+      "baseUrl": "http://bibliothek-bk.no-ip.org/wwwopac",
+      "authHint": "opac",
+      "location": {
+        "city": "Backnang",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          48.9377421,
+          9.43487890000006
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Backnang_Bibliothek_im_Beruflichen_Schulzentrum.json",
+        "file": "Backnang_Bibliothek_im_Beruflichen_Schulzentrum.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1210",
+      "title": "Bibliothek im Griepe-Haus",
+      "api": "bibliotheca",
+      "baseUrl": "https://webopac-bevensen.itv-ue.de",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Bevensen",
+        "state": "Niedersachsen",
+        "country": "Deutschland"
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BadBevensen.json",
+        "file": "BadBevensen.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1211",
+      "title": "Bibliothek Mamertus",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.winbiap.de/badbirnbach",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Birnbach",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          48.4432078,
+          13.0898068
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BadBirnbach.json",
+        "file": "BadBirnbach.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8822",
+      "title": "Bibliothek Reburg",
+      "api": "webopac.net",
+      "baseUrl": "http://www.winmedio.net/Altstaetten",
+      "authHint": "opac",
+      "location": {
+        "city": "Altstätten",
+        "state": "St. Gallen",
+        "country": "Schweiz",
+        "geo": [
+          47.378,
+          9.54104
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Altstaetten_Reburg.json",
+        "file": "Altstaetten_Reburg.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "9382",
+      "title": "Bibliothèque de l'école polytechnique d'architecture et d'urbanisme",
+      "api": "koha",
+      "baseUrl": "http://www.catalogue.epau-alger.edu.dz",
+      "authHint": "opac",
+      "location": {
+        "city": "Alger",
+        "state": "Alger",
+        "country": "Algérie",
+        "geo": [
+          36.7190624,
+          3.1543597
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Algiers_EPAU.json",
+        "file": "Algiers_EPAU.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "916",
+      "title": "Bücherei",
+      "api": "open",
+      "baseUrl": "https://bibliothek.komm.one/aichwald",
+      "authHint": "opac",
+      "location": {
+        "city": "Aichwald",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          48.75954,
+          9.37619
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Aichwald.json",
+        "file": "Aichwald.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "973",
+      "title": "Bücherei",
+      "api": "bibliotheca",
+      "baseUrl": "https://wwwopac.komm.one/altbach",
+      "authHint": "opac",
+      "location": {
+        "city": "Altbach",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          48.72424,
+          9.3790401
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Altbach.json",
+        "file": "Altbach.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1100",
+      "title": "Bücherei",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.winbiap.de/asbach-baeumenheim",
+      "authHint": "opac",
+      "location": {
+        "city": "Asbach-Bäumenheim",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          48.68163,
+          10.814457
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Asbach_Baeumenheim.json",
+        "file": "Asbach_Baeumenheim.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1119",
+      "title": "Bücherei",
+      "api": "bibliotheca",
+      "baseUrl": "https://wwwopac.komm.one/aspach",
+      "authHint": "opac",
+      "location": {
+        "city": "Aspach",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          48.9663463,
+          9.3997617
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Aspach.json",
+        "file": "Aspach.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8833",
+      "title": "Fleckenbibliothek",
+      "api": "webopac.net",
+      "baseUrl": "http://www.winmedio.ch/zurzach",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Zurzach",
+        "state": "Aargau",
+        "country": "Schweiz",
+        "geo": [
+          47.5858932,
+          8.2919577
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bad_Zurzach.json",
+        "file": "Bad_Zurzach.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1277",
+      "title": "Gemeinde- und Kurbibliothek",
+      "api": "bibliotheca",
+      "baseUrl": "https://badklosterlausnitz.internetopac.de",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Klosterlausnitz",
+        "state": "Thüringen",
+        "country": "Deutschland"
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BadKlosterlausnitz.json",
+        "file": "BadKlosterlausnitz.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8820",
+      "title": "Gemeindebibliothek",
+      "api": "webopac.net",
+      "baseUrl": "http://www.bibliotheken-zh.ch/Adliswil",
+      "authHint": "opac",
+      "location": {
+        "city": "Adliswil",
+        "state": "Zürich",
+        "country": "Schweiz",
+        "geo": [
+          47.3116759,
+          8.5245079
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Adliswil.json",
+        "file": "Adliswil.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8825",
+      "title": "Gemeindebibliothek",
+      "api": "webopac.net",
+      "baseUrl": "http://www.bibliotheken-zh.ch/Andelfingen",
+      "authHint": "opac",
+      "location": {
+        "city": "Andelfingen",
+        "state": "Zürich",
+        "country": "Schweiz",
+        "geo": [
+          47.5963,
+          8.67657
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Andelfingen.json",
+        "file": "Andelfingen.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "9348",
+      "title": "Gemeindebibliothek",
+      "api": "open",
+      "baseUrl": "http://webopac.bibliothek.arlesheim.ch",
+      "authHint": "none",
+      "location": {
+        "city": "Arlesheim",
+        "state": "Basel-Landschaft",
+        "country": "Schweiz",
+        "geo": [
+          47.4946217,
+          7.61968530000001
+        ]
+      },
+      "accountSupported": false,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Arlesheim.json",
+        "file": "Arlesheim.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8834",
+      "title": "Gemeindebibliothek",
+      "api": "webopac.net",
+      "baseUrl": "http://www.bibliotheken-zh.ch/Baeretswil",
+      "authHint": "opac",
+      "location": {
+        "city": "Bäretswil",
+        "state": "Zürich",
+        "country": "Schweiz",
+        "geo": [
+          47.33813,
+          8.85835
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Baeretswil.json",
+        "file": "Baeretswil.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8839",
+      "title": "Gemeindebibliothek",
+      "api": "webopac.net",
+      "baseUrl": "http://www.bibliotheken-zh.ch/Bassersdorf",
+      "authHint": "opac",
+      "location": {
+        "city": "Bassersdorf",
+        "state": "Zürich",
+        "country": "Schweiz",
+        "geo": [
+          47.4426816,
+          8.6277587
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bassersdorf.json",
+        "file": "Bassersdorf.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "864",
+      "title": "Gemeindebücherei",
+      "api": "bibliotheca",
+      "baseUrl": "http://buecherei.abstatt.de/webopac",
+      "authHint": "opac",
+      "location": {
+        "city": "Abstatt",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          49.0676889,
+          9.2903905
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Abstatt.json",
+        "file": "Abstatt.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "958",
+      "title": "Gemeindebücherei",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.winbiap.de/allershausen",
+      "authHint": "opac",
+      "location": {
+        "city": "Allershausen",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          48.4305842,
+          11.5950372
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Allershausen.json",
+        "file": "Allershausen.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "9390",
+      "title": "Gemeindebücherei",
+      "api": "bibliotheca",
+      "baseUrl": "https://web-opac.komm.one/altlussheim",
+      "authHint": "opac",
+      "location": {
+        "city": "Altlußheim",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          49.2997,
+          8.5
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Altlu%C3%9Fheim.json",
+        "file": "Altlu%C3%9Fheim.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1015",
+      "title": "Gemeindebücherei",
+      "api": "winbiap",
+      "baseUrl": "https://opac.winbiap.net/altomuenster",
+      "authHint": "opac",
+      "location": {
+        "city": "Altomünster",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          48.3881168,
+          11.2587466
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Altomuenster.json",
+        "file": "Altomuenster.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1117",
+      "title": "Gemeindebücherei",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.winbiap.net/aschheim",
+      "authHint": "opac",
+      "location": {
+        "city": "Aschheim",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          48.1723102,
+          11.7159097
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Aschheim.json",
+        "file": "Aschheim.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1472",
+      "title": "Gemeindebücherei",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.winbiap.de/bechhofen",
+      "authHint": "opac",
+      "location": {
+        "city": "Bechhofen an der Heide",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          49.1577,
+          10.5481913
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bechhofen.json",
+        "file": "Bechhofen.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8835",
+      "title": "Gemeindebücherei Vaterstetten",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.winbiap.net/vaterstetten",
+      "authHint": "opac",
+      "location": {
+        "city": "Vaterstetten",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          48.0989695,
+          11.7868066
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Baldham_Vaterstetten.json",
+        "file": "Baldham_Vaterstetten.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "2",
+      "title": "GGG Stadtbibliothek",
+      "api": "netbiblio",
+      "baseUrl": "https://katalog.stadtbibliothekbasel.ch/GGG/WebOPAC",
+      "authHint": "opac",
+      "location": {
+        "city": "Basel",
+        "state": "Basel",
+        "country": "Schweiz",
+        "geo": [
+          47.553724,
+          7.5860708
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Basel.json",
+        "file": "Basel.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8817",
+      "title": "Hochschulbibliothek",
+      "api": "adis",
+      "baseUrl": "https://bsz.ibs-bw.de/aDISWeb/app",
+      "authHint": "opac",
+      "location": {
+        "city": "Aalen",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          48.8366887,
+          10.0971163
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Aalen_HS.json",
+        "file": "Aalen_HS.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8827",
+      "title": "Hochschulbibliothek",
+      "api": "sisis",
+      "baseUrl": "https://recherche.bibkatalog.de/InfoGuideClient.fwssis",
+      "authHint": "opac",
+      "location": {
+        "city": "Aschaffenburg",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          49.971918,
+          9.1605
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Aschaffenburg_HS.json",
+        "file": "Aschaffenburg_HS.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8823",
+      "title": "Hochschule",
+      "api": "sisis",
+      "baseUrl": "https://opac.haw-aw.de/InfoGuideClient.fawsis",
+      "authHint": "opac",
+      "location": {
+        "city": "Amberg/Oberpf.",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          49.67059,
+          12.17761
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/AmbergWeiden.json",
+        "file": "AmbergWeiden.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8826",
+      "title": "Hofbibliothek",
+      "api": "sisis",
+      "baseUrl": "https://recherche.bibkatalog.de/InfoGuideClient.fwssis",
+      "authHint": "opac",
+      "location": {
+        "city": "Aschaffenburg",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          49.9735474,
+          9.1525973
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Aschaffenburg_Hof.json",
+        "file": "Aschaffenburg_Hof.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "4",
+      "title": "Kantonsbibliothek",
+      "api": "sisis",
+      "baseUrl": "https://xaikb14.bl.ch/InfoGuideClient",
+      "authHint": "opac",
+      "location": {
+        "city": "Liestal",
+        "state": "Basel-Land",
+        "country": "Schweiz",
+        "geo": [
+          47.4857826,
+          7.7304432
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BaselLand.json",
+        "file": "BaselLand.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "987",
+      "title": "Kath. ÖB St. Johannes Baptist",
+      "api": "bibliotheca",
+      "baseUrl": "https://webopac.bistum-muenster.de/altenberge",
+      "authHint": "opac",
+      "location": {
+        "city": "Altenberge",
+        "state": "Nordrhein-Westfalen",
+        "country": "Deutschland",
+        "geo": [
+          52.0468114,
+          7.4699315
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Altenberge.json",
+        "file": "Altenberge.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1261",
+      "title": "Konrad-Duden-Stadtbibliothek",
+      "api": "winbiap",
+      "baseUrl": "http://195.158.43.74/webopac",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Hersfeld",
+        "state": "Hessen",
+        "country": "Deutschland",
+        "geo": [
+          50.8701345,
+          9.7019675
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BadHersfeld.json",
+        "file": "BadHersfeld.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "9321",
+      "title": "Landschaftsbibliothek",
+      "api": "pica",
+      "baseUrl": "http://lhemd.gbv.de",
+      "authHint": "opac",
+      "location": {
+        "city": "Aurich",
+        "state": "Niedersachsen",
+        "country": "Deutschland",
+        "geo": [
+          53.4674232,
+          7.4816445
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Aurich_Landschaftsbibliothek.json",
+        "file": "Aurich_Landschaftsbibliothek.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1188",
+      "title": "Marktbücherei",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.winbiap.net/badabbach",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Abbach",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          48.9373377,
+          12.0462593
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BadAbbach.json",
+        "file": "BadAbbach.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1413",
+      "title": "Mediothek",
+      "api": "open",
+      "baseUrl": "https://bibliothek.komm.one/balingen",
+      "authHint": "none",
+      "location": {
+        "city": "Balingen",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          48.2736921,
+          8.8498901
+        ]
+      },
+      "accountSupported": false,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Balingen.json",
+        "file": "Balingen.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "951",
+      "title": "Öffentliche Bibliothek St. Matthäus",
+      "api": "bibliotheca",
+      "baseUrl": "https://opac.buecherei-alfter.de/webopac",
+      "authHint": "opac",
+      "location": {
+        "city": "Alfter",
+        "state": "Nordrhein-Westfalen",
+        "country": "Deutschland",
+        "geo": [
+          50.7380202,
+          7.0086792
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Alfter_StMatthaeus.json",
+        "file": "Alfter_StMatthaeus.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8831",
+      "title": "Öffentliche Bücherei",
+      "api": "littera",
+      "baseUrl": "http://buecherei-axams.webopac.at",
+      "authHint": "none",
+      "location": {
+        "city": "Axams",
+        "state": "Tirol",
+        "country": "Österreich",
+        "geo": [
+          47.2325964,
+          11.2801251
+        ]
+      },
+      "accountSupported": false,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Axams.json",
+        "file": "Axams.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1421",
+      "title": "Öffentliche Bücherei",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.citkomm.de/balve",
+      "authHint": "opac",
+      "location": {
+        "city": "Balve",
+        "state": "Nordrhein-Westfalen",
+        "country": "Deutschland",
+        "geo": [
+          51.32837,
+          7.8653
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Balve.json",
+        "file": "Balve.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1479",
+      "title": "Öffentliche Bücherei",
+      "api": "bibliotheca",
+      "baseUrl": "http://www.bibliothek-im-netz.de",
+      "authHint": "opac",
+      "location": {
+        "city": "Beckum",
+        "state": "Nordrhein-Westfalen",
+        "country": "Deutschland",
+        "geo": [
+          51.7537536,
+          8.0407579
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Beckum.json",
+        "file": "Beckum.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "891",
+      "title": "Ortsbücherei",
+      "api": "bibliotheca",
+      "baseUrl": "https://wwwopac.komm.one/affalterbach",
+      "authHint": "opac",
+      "location": {
+        "city": "Affalterbach",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          48.9203487,
+          9.3235605
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Affalterbach.json",
+        "file": "Affalterbach.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8821",
+      "title": "Regionalbibliothek",
+      "api": "webopac.net",
+      "baseUrl": "http://www.bibliotheken-zh.ch/Affoltern",
+      "authHint": "opac",
+      "location": {
+        "city": "Affoltern",
+        "state": "Zürich",
+        "country": "Schweiz",
+        "geo": [
+          47.2775064,
+          8.4503277
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Affoltern.json",
+        "file": "Affoltern.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1330",
+      "title": "Stadt- und Kurbücherei",
+      "api": "open",
+      "baseUrl": "https://buecherei.badrappenau.de/",
+      "authHint": "none",
+      "location": {
+        "city": "Bad Rappenau",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          49.2403393,
+          9.1047288
+        ]
+      },
+      "accountSupported": false,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BadRappenau.json",
+        "file": "BadRappenau.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1074",
+      "title": "Stadt-, Kreis- und Fahrbibliothek",
+      "api": "open",
+      "baseUrl": "https://bibliothek.apolda.info",
+      "authHint": "none",
+      "location": {
+        "city": "Apolda",
+        "state": "Thüringen",
+        "country": "Deutschland",
+        "geo": [
+          51.02461,
+          11.5189
+        ]
+      },
+      "accountSupported": false,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Apolda.json",
+        "file": "Apolda.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8818",
+      "title": "Stadtbibliothek",
+      "api": "webopac.net",
+      "baseUrl": "http://www.winmedio.net/aarau",
+      "authHint": "opac",
+      "location": {
+        "city": "Aarau",
+        "state": "Aargau",
+        "country": "Schweiz",
+        "geo": [
+          47.3924914,
+          8.0460447
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Aarau.json",
+        "file": "Aarau.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "17",
+      "title": "Stadtbibliothek",
+      "api": "koha",
+      "baseUrl": "https://sb-achern.lmscloud.net",
+      "authHint": "opac",
+      "location": {
+        "city": "Achern",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          48.62838,
+          8.07162
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Achern.json",
+        "file": "Achern.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1024",
+      "title": "Stadtbibliothek",
+      "api": "biber1992",
+      "baseUrl": "http://217.7.119.181",
+      "authHint": "opac",
+      "location": {
+        "city": "Alzenau",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          50.0862954,
+          9.0734468
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Alzenau.json",
+        "file": "Alzenau.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1031",
+      "title": "Stadtbibliothek",
+      "api": "winbiap",
+      "baseUrl": "http://www.amberg.de/wwwopac",
+      "authHint": "opac",
+      "location": {
+        "city": "Amberg/Oberpf.",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          49.4438144,
+          11.8583626
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Amberg.json",
+        "file": "Amberg.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8607",
+      "title": "Stadtbibliothek",
+      "api": "biber1992",
+      "baseUrl": "https://aschaffenburg.bibdia-hosts.de",
+      "authHint": "opac",
+      "location": {
+        "city": "Aschaffenburg",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          49.9763875,
+          9.1433494
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Aschaffenburg.json",
+        "file": "Aschaffenburg.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1281",
+      "title": "Stadtbibliothek",
+      "api": "biber1992",
+      "baseUrl": "https://badkreuznach.bibdia-hosts.de",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Kreuznach",
+        "state": "Rheinland-Pfalz",
+        "country": "Deutschland",
+        "geo": [
+          49.8440162,
+          7.8731346
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BadKreuznach.json",
+        "file": "BadKreuznach.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "30",
+      "title": "Stadtbibliothek",
+      "api": "arena",
+      "baseUrl": "https://www.stadtbibliothek-nes.de/",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Neustadt/S",
+        "state": "Bayern",
+        "country": "Deutschland"
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BadNeustadt.json",
+        "file": "BadNeustadt.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "30",
+      "title": "Stadtbibliothek",
+      "api": "BIBDIA",
+      "baseUrl": "http://badneustadt.bibdia-hosts.de",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Neustadt/S",
+        "state": "Bayern",
+        "country": "Deutschland"
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BadNeustadtBibDia.json",
+        "file": "BadNeustadtBibDia.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1279",
+      "title": "Stadtbibliothek",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.winbiap.de/badkoenigshofen",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Königshofen",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          50.30101,
+          10.4734212
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bad_Koenigshofen.json",
+        "file": "Bad_Koenigshofen.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1286",
+      "title": "Stadtbibliothek",
+      "api": "bibliotheca",
+      "baseUrl": "https://webopac.badlangensalza.de/webopac",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Langensalza",
+        "state": "Thüringen",
+        "country": "Deutschland",
+        "geo": [
+          51.107872,
+          10.648731
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bad_Langensalza.json",
+        "file": "Bad_Langensalza.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1296",
+      "title": "Stadtbibliothek",
+      "api": "bibliotheca",
+      "baseUrl": "http://bib-liebenzell.myftp.org",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Liebenzell",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          48.7716404,
+          8.7325699
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bad_Liebenzell.json",
+        "file": "Bad_Liebenzell.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1325",
+      "title": "Stadtbibliothek",
+      "api": "open",
+      "baseUrl": "https://stadtbibliothek-badoldesloe.bibliotheca-open.de",
+      "authHint": "none",
+      "location": {
+        "city": "Bad Oldesloe",
+        "state": "Schleswig-Holstein",
+        "country": "Deutschland",
+        "geo": [
+          53.80788,
+          10.3734018
+        ]
+      },
+      "accountSupported": false,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bad_Oldesloe.json",
+        "file": "Bad_Oldesloe.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1367",
+      "title": "Stadtbibliothek",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.winbiap.de/badtoelz",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Tölz",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          47.7640421,
+          11.5635549
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bad_Toelz.json",
+        "file": "Bad_Toelz.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8832",
+      "title": "Stadtbibliothek",
+      "api": "sisis",
+      "baseUrl": "http://opac.baden.ch/webOPACClient.baden",
+      "authHint": "opac",
+      "location": {
+        "city": "Baden",
+        "state": "Aargau",
+        "country": "Schweiz",
+        "geo": [
+          47.4737667,
+          8.3064732
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Baden.json",
+        "file": "Baden.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1433",
+      "title": "Stadtbibliothek",
+      "api": "biber1992",
+      "baseUrl": "http://bargteheide.bibdia-hosts.de",
+      "authHint": "opac",
+      "location": {
+        "city": "Bargteheide",
+        "state": "Schleswig-Holstein",
+        "country": "Deutschland"
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bargteheide.json",
+        "file": "Bargteheide.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1458",
+      "title": "Stadtbibliothek",
+      "api": "sisis",
+      "baseUrl": "https://opac-stadtbibliothek.bautzen.de/webOPACClient",
+      "authHint": "opac",
+      "location": {
+        "city": "Bautzen",
+        "state": "Sachsen",
+        "country": "Deutschland",
+        "geo": [
+          51.182293,
+          14.4237749
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bautzen.json",
+        "file": "Bautzen.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "18",
+      "title": "Stadtbibliothek",
+      "api": "open",
+      "baseUrl": "https://wwwopac.stadt.bayreuth.de",
+      "authHint": "none",
+      "location": {
+        "city": "Bayreuth",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          49.942678,
+          11.5805559
+        ]
+      },
+      "accountSupported": false,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bayreuth.json",
+        "file": "Bayreuth.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8609",
+      "title": "StadtBibliothek",
+      "api": "open",
+      "baseUrl": "http://wwwopac.bad-homburg.de",
+      "authHint": "none",
+      "location": {
+        "city": "Bad Homburg",
+        "state": "Hessen",
+        "country": "Deutschland",
+        "geo": [
+          50.2261,
+          8.61509
+        ]
+      },
+      "accountSupported": false,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bad_Homburg.json",
+        "file": "Bad_Homburg.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "884",
+      "title": "Stadtbücherei",
+      "api": "bibliotheca",
+      "baseUrl": "https://web-opac.komm.one/adelsheim",
+      "authHint": "opac",
+      "location": {
+        "city": "Adelsheim",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          49.40309025654704,
+          9.390925613740533
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Adelsheim.json",
+        "file": "Adelsheim.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "9289",
+      "title": "Stadtbücherei",
+      "api": "open",
+      "baseUrl": "https://opac.ahaus.de",
+      "authHint": "none",
+      "location": {
+        "city": "Ahaus",
+        "state": "Nordrhein-Westfalen",
+        "country": "Deutschland",
+        "geo": [
+          52.0814352,
+          7.0032092
+        ]
+      },
+      "accountSupported": false,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Ahaus.json",
+        "file": "Ahaus.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8605",
+      "title": "Stadtbücherei",
+      "api": "bibliotheca",
+      "baseUrl": "http://www.bibliothek-im-netz.de",
+      "authHint": "opac",
+      "location": {
+        "city": "Ahlen",
+        "state": "Nordrhein-Westfalen",
+        "country": "Deutschland",
+        "geo": [
+          51.76134,
+          7.88774
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Ahlen.json",
+        "file": "Ahlen.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "908",
+      "title": "Stadtbücherei",
+      "api": "bibliotheca",
+      "baseUrl": "http://buecherei.ahrensburg.de/webopac",
+      "authHint": "opac",
+      "location": {
+        "city": "Ahrensburg",
+        "state": "Schleswig-Holstein",
+        "country": "Deutschland",
+        "geo": [
+          53.6739747,
+          10.236561
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Ahrensburg.json",
+        "file": "Ahrensburg.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "915",
+      "title": "Stadtbücherei",
+      "api": "bibliotheca",
+      "baseUrl": "https://wwwopac.komm.one/aichtal",
+      "authHint": "opac",
+      "location": {
+        "city": "Aichtal",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          48.6262015,
+          9.263369
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Aichtal.json",
+        "file": "Aichtal.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "931",
+      "title": "Stadtbücherei",
+      "api": "open",
+      "baseUrl": "https://bibliothek.komm.one/albstadt/",
+      "authHint": "opac",
+      "location": {
+        "city": "Albstadt",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          48.2089,
+          9.03233
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Albstadt.json",
+        "file": "Albstadt.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "980",
+      "title": "Stadtbücherei",
+      "api": "winbiap",
+      "baseUrl": "http://webopac.citkomm.de/altena",
+      "authHint": "opac",
+      "location": {
+        "city": "Altena/Westf",
+        "state": "Nordrhein-Westfalen",
+        "country": "Deutschland",
+        "geo": [
+          51.3015239,
+          7.6714387
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Altena.json",
+        "file": "Altena.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1050",
+      "title": "Stadtbücherei",
+      "api": "bibliotheca",
+      "baseUrl": "https://webopac.andernach.de/webopac",
+      "authHint": "opac",
+      "location": {
+        "city": "Andernach",
+        "state": "Rheinland-Pfalz",
+        "country": "Deutschland",
+        "geo": [
+          50.4398716,
+          7.4000356
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Andernach.json",
+        "file": "Andernach.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1069",
+      "title": "Stadtbücherei",
+      "api": "sisis",
+      "baseUrl": "https://fanoz3.bib-bvb.de/InfoGuideClient.fansis",
+      "authHint": "opac",
+      "location": {
+        "city": "Ansbach",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          49.2996333,
+          10.5756479
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Ansbach.json",
+        "file": "Ansbach.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8606",
+      "title": "Stadtbücherei",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.citkomm.de/arnsberg",
+      "authHint": "opac",
+      "location": {
+        "city": "Arnsberg",
+        "state": "Nordrhein-Westfalen",
+        "country": "Deutschland",
+        "geo": [
+          51.4535105,
+          7.9595925
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Arnsberg.json",
+        "file": "Arnsberg.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1120",
+      "title": "Stadtbücherei",
+      "api": "bibliotheca",
+      "baseUrl": "https://webopac.stadtbuecherei-asperg.de/webopac",
+      "authHint": "opac",
+      "location": {
+        "city": "Asperg",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          48.9058194,
+          9.1343304
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Asperg.json",
+        "file": "Asperg.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8608",
+      "title": "Stadtbücherei",
+      "api": "koha",
+      "baseUrl": "https://sb-augsburg.lmscloud.net",
+      "authHint": "opac",
+      "location": {
+        "city": "Augsburg",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          48.3692816,
+          10.8951371
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Augsburg.json",
+        "file": "Augsburg.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1187",
+      "title": "Stadtbücherei",
+      "api": "bibliotheca",
+      "baseUrl": "https://wwwopac.komm.one/backnang",
+      "authHint": "opac",
+      "location": {
+        "city": "Backnang",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          48.948632,
+          9.430347
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Backnang.json",
+        "file": "Backnang.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1251",
+      "title": "Stadtbücherei",
+      "api": "bibliotheca",
+      "baseUrl": "https://web-opac.kivbf.de/bad-friedrichshall",
+      "authHint": "none",
+      "location": {
+        "city": "Bad Friedrichshall",
+        "state": "Baden-Württemberg",
+        "country": "Deutschland",
+        "geo": [
+          49.22756,
+          9.21026
+        ]
+      },
+      "accountSupported": false,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bad%20Friedrichshall.json",
+        "file": "Bad%20Friedrichshall.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1190",
+      "title": "Stadtbücherei",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.winbiap.net/badaibling",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Aibling",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          47.8640369,
+          12.0097036
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BadAibling.json",
+        "file": "BadAibling.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1266",
+      "title": "Stadtbücherei",
+      "api": "bibliotheca",
+      "baseUrl": "http://biblio.bad-honnef.de/wopac",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Honnef",
+        "state": "Nordrhein-Westfalen",
+        "country": "Deutschland",
+        "geo": [
+          50.64444,
+          7.22962
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BadHonnef.json",
+        "file": "BadHonnef.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1275",
+      "title": "Stadtbücherei",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.winbiap.net/badkissingen",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Kissingen",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          50.2008463,
+          10.0765115
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BadKissingen.json",
+        "file": "BadKissingen.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1352",
+      "title": "Stadtbücherei",
+      "api": "iopac",
+      "baseUrl": "https://stadtbuecherei.bad-schwartau.de",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Schwartau",
+        "state": "Schleswig-Holstein",
+        "country": "Deutschland",
+        "geo": [
+          53.9197173,
+          10.6971789
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BadSchwartau.json",
+        "file": "BadSchwartau.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1372",
+      "title": "Stadtbücherei",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.winbiap.de/badvilbel",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Vilbel",
+        "state": "Hessen",
+        "country": "Deutschland",
+        "geo": [
+          50.1827055,
+          8.7386798
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BadVilbel.json",
+        "file": "BadVilbel.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1379",
+      "title": "Stadtbücherei",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.winbiap.de/badwildungen",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Wildungen",
+        "state": "Hessen",
+        "country": "Deutschland",
+        "geo": [
+          51.1196745,
+          9.1241131
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BadWildungen.json",
+        "file": "BadWildungen.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1233",
+      "title": "Stadtbücherei",
+      "api": "open",
+      "baseUrl": "https://stadtbuecherei-bad-duerkheim.bibliotheca-open.de",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Dürkheim",
+        "state": "Rheinland-Pfalz",
+        "country": "Deutschland",
+        "geo": [
+          49.46026,
+          8.16622
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bad_Duerkheim.json",
+        "file": "Bad_Duerkheim.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1312",
+      "title": "Stadtbücherei",
+      "api": "biber1992",
+      "baseUrl": "http://bad-nauheim.bibdia-hosts.de",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Nauheim",
+        "state": "Hessen",
+        "country": "Deutschland",
+        "geo": [
+          50.3638509,
+          8.74483
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bad_Nauheim.json",
+        "file": "Bad_Nauheim.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1372",
+      "title": "Stadtbücherei",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.winbiap.de/badvilbel",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Vilbel",
+        "state": "Hessen",
+        "country": "Deutschland",
+        "geo": [
+          50.1827055,
+          8.7386798
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bad_Vilbel.json",
+        "file": "Bad_Vilbel.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8612",
+      "title": "Stadtbücherei",
+      "api": "bibliotheca",
+      "baseUrl": "http://opac.stadtbuecherei-bamberg.de/webopac",
+      "authHint": "opac",
+      "location": {
+        "city": "Bamberg",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          49.8969384,
+          10.8923536
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bamberg.json",
+        "file": "Bamberg.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1435",
+      "title": "Stadtbücherei",
+      "api": "koha",
+      "baseUrl": "https://sb-barmstedt.lmscloud.net",
+      "authHint": "opac",
+      "location": {
+        "city": "Barmstedt",
+        "state": "Schleswig-Holstein",
+        "country": "Deutschland",
+        "geo": [
+          53.7905563,
+          9.7692149
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Barmstedt.json",
+        "file": "Barmstedt.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1455",
+      "title": "Stadtbücherei",
+      "api": "winbiap",
+      "baseUrl": "https://webopac.winbiap.de/baunatal",
+      "authHint": "opac",
+      "location": {
+        "city": "Baunatal",
+        "state": "Hessen",
+        "country": "Deutschland",
+        "geo": [
+          51.2537283,
+          9.4146
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Baunatal.json",
+        "file": "Baunatal.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1323",
+      "title": "Stadtbücherei - Lenné-Karree",
+      "api": "winbiap",
+      "baseUrl": "http://webopac.badoeynhausen.de",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Oeynhausen",
+        "state": "Nordrhein-Westfalen",
+        "country": "Deutschland",
+        "geo": [
+          52.2040896,
+          8.7956987
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/BadOeynhausen.json",
+        "file": "BadOeynhausen.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "1480",
+      "title": "Stadtbücherei Neubeckum",
+      "api": "bibliotheca",
+      "baseUrl": "http://www.bibliothek-im-netz.de",
+      "authHint": "opac",
+      "location": {
+        "city": "Beckum",
+        "state": "Nordrhein-Westfalen",
+        "country": "Deutschland",
+        "geo": [
+          51.7979057,
+          8.0244982
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Beckum_Neubeckum.json",
+        "file": "Beckum_Neubeckum.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8610",
+      "title": "Stadtbücherei Ostertor Galerie",
+      "api": "winbiap",
+      "baseUrl": "http://webopac.bad-salzuflen.de",
+      "authHint": "opac",
+      "location": {
+        "city": "Bad Salzuflen",
+        "state": "Nordrhein-Westfalen",
+        "country": "Deutschland",
+        "geo": [
+          52.08243,
+          8.74855
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bad_Salzuflen.json",
+        "file": "Bad_Salzuflen.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8830",
+      "title": "Unibibliothek",
+      "api": "touchpoint",
+      "baseUrl": "https://opac.bibliothek.uni-augsburg.de/TouchPoint",
+      "authHint": "opac",
+      "location": {
+        "city": "Augsburg",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          48.3714407,
+          10.8982552
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Augsburg_Uni.json",
+        "file": "Augsburg_Uni.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8837",
+      "title": "Unibibliothek",
+      "api": "touchpoint",
+      "baseUrl": "https://katalog.ub.uni-bamberg.de/TouchPoint",
+      "authHint": "opac",
+      "location": {
+        "city": "Bamberg",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          49.8988135,
+          10.9027636
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bamberg_UB.json",
+        "file": "Bamberg_UB.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8841",
+      "title": "Unibibliothek",
+      "api": "touchpoint",
+      "baseUrl": "https://katalog.uni-bayreuth.de/TouchPoint_touchpoint",
+      "authHint": "opac",
+      "location": {
+        "city": "Bayreuth",
+        "state": "Bayern",
+        "country": "Deutschland",
+        "geo": [
+          49.9456399,
+          11.5713346
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Bayreuth_Uni.json",
+        "file": "Bayreuth_Uni.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8816",
+      "title": "Unibibliothek RWTH",
+      "api": "touchpoint",
+      "baseUrl": "https://index.ub.rwth-aachen.de/TouchPointClient_touchpoint",
+      "authHint": "opac",
+      "location": {
+        "city": "Aachen",
+        "state": "Nordrhein-Westfalen",
+        "country": "Deutschland",
+        "geo": [
+          50.75968,
+          6.0965247
+        ]
+      },
+      "accountSupported": true,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Aachen_RWTH.json",
+        "file": "Aachen_RWTH.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8824",
+      "title": "Universiteit",
+      "api": "primo",
+      "baseUrl": "http://lib.uva.nl/primo_library/libweb",
+      "authHint": "none",
+      "location": {
+        "city": "Amsterdam",
+        "state": "Noord-Holland",
+        "country": "Nederland",
+        "geo": [
+          52.3558182,
+          4.9557263
+        ]
+      },
+      "accountSupported": false,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Amsterdam_U.json",
+        "file": "Amsterdam_U.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8819",
+      "title": "University",
+      "api": "primo",
+      "baseUrl": "http://primo.abdn.ac.uk:1701/primo_library/libweb",
+      "authHint": "none",
+      "location": {
+        "city": "Aberdeen",
+        "state": "Scotland",
+        "country": "United Kingdom",
+        "geo": [
+          57.16476,
+          -2.1015257
+        ]
+      },
+      "accountSupported": false,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Aberdeen.json",
+        "file": "Aberdeen.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "9357",
+      "title": "University Library",
+      "api": "primo",
+      "baseUrl": "https://catalogue.library.auckland.ac.nz/primo_library/libweb",
+      "authHint": "none",
+      "location": {
+        "city": "Auckland",
+        "state": "Auckland",
+        "country": "New Zealand",
+        "geo": [
+          -36.8512521,
+          174.769334
+        ]
+      },
+      "accountSupported": false,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Auckland_University_Library.json",
+        "file": "Auckland_University_Library.json",
+        "ref": "master"
+      }
+    },
+    {
+      "id": "8828",
+      "title": "Εθνική Βιβλιοθήκη της Ελλάδος",
+      "api": "vufind",
+      "baseUrl": "http://vopac.nlg.gr",
+      "authHint": "none",
+      "location": {
+        "city": "Αθήνα",
+        "state": "Αττική",
+        "country": "Ελλάς",
+        "geo": [
+          37.9812243,
+          23.7331972
+        ]
+      },
+      "accountSupported": false,
+      "source": {
+        "repository": "opacapp/opacapp-config-files",
+        "path": "bibs/Athens_GreekNationalLibrary.json",
+        "file": "Athens_GreekNationalLibrary.json",
+        "ref": "master"
+      }
+    }
+  ],
+  "issues": []
+}
