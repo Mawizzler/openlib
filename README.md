@@ -3,9 +3,27 @@
 OpenLib is an Expo + TypeScript app for OPAC-driven library discovery. This repo contains a minimal clean-architecture foundation for ticket #459.
 
 ## Setup
+### Requirements
+- Node.js (tested with Node `v22.22.0`) and npm (tested with npm `10.9.4`).
+
+### Install
 1. Install dependencies: `npm install`
-2. Start web: `npm run web`
-3. Start native: `npm run ios` or `npm run android`
+   - Do **not** omit devDependencies (`--omit=dev`), since web bundling relies on build-time tooling (e.g. NativeWind/Tailwind).
+   - In CI, prefer `npm ci` (not `npm ci --omit=dev`).
+   - Note: npm may warn about the `production` config; this repo sets it explicitly to avoid accidental devDependency omission in production-like environments.
+
+### Run (Web)
+- Dev server: `npm run web`
+  - Non-interactive/CI mode: `CI=1 npm run web`
+  - If running in a remote container/VM, pass an explicit port and forward it: `npm run web -- --port 19006`
+
+### Build (Web export)
+- Static export: `npx expo export -p web --output-dir dist-web`
+- Serve the export locally: `npx http-server dist-web` (or `python3 -m http.server -d dist-web 8080`)
+
+### Host caveats
+- **Linux (headless/minimal images):** `expo start` may log an error about installing React Native DevTools due to a missing `libnspr4.so`. Install the OS package (e.g. Debian/Ubuntu: `apt-get install -y libnspr4`) or ignore the message if you only need web bundling.
+- **Nested repos / monorepos:** this repo pins Metro resolution to this repo’s `node_modules` (see `metro.config.js`) to avoid accidentally picking up React/React Native from a parent directory.
 
 ## Scripts
 - `npm run start` - Expo dev server
