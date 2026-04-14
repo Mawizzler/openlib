@@ -10,7 +10,7 @@ import '@/global.css';
 
 export default function App() {
   return (
-    <GluestackUIProvider mode="dark">
+    <GluestackUIProvider mode="system">
       <ActiveLibraryProvider>
         <AccountSessionProvider>
           <ReminderPreferencesProvider>

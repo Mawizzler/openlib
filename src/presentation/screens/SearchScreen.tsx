@@ -15,6 +15,7 @@ import { useRecentSearches } from '@/src/application/state/RecentSearchesStore';
 import { useReminderState } from '@/src/application/state/ReminderStateStore';
 import { SearchFlowService } from '@/src/application/services/opac/SearchFlowService';
 import type { OpacBriefRecord, OpacSearchResult } from '@/src/domain/models/opac';
+import { useAppPalette, type AppPalette } from '@/src/presentation/theme/palette';
 
 const formatAuthors = (authors: string[]) => {
   if (!authors.length) return 'Unknown author';
@@ -38,6 +39,8 @@ export function SearchScreen({ onBack, onPickLibrary, onShowDetails }: SearchScr
   const [results, setResults] = useState<OpacSearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { recentSearches, addSearch, clearSearches } = useRecentSearches();
+  const palette = useAppPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
 
   const searchService = useMemo(() => new SearchFlowService(), []);
 
@@ -209,7 +212,7 @@ export function SearchScreen({ onBack, onPickLibrary, onShowDetails }: SearchScr
           value={query}
           onChangeText={setQuery}
           placeholder={canSearch ? 'Search by title, author, or keyword' : 'Select a library first'}
-          placeholderTextColor="rgba(0,0,0,0.4)"
+          placeholderTextColor={palette.inputPlaceholder}
           style={[styles.searchInput, !canSearch && styles.searchInputDisabled]}
           editable={canSearch}
           returnKeyType="search"
@@ -226,7 +229,7 @@ export function SearchScreen({ onBack, onPickLibrary, onShowDetails }: SearchScr
 
       {status === 'loading' ? (
         <View style={styles.loadingRow}>
-          <ActivityIndicator size="small" color="#111827" />
+          <ActivityIndicator size="small" color={palette.primary} />
           <Text style={styles.loadingText}>Searching {activeLibrary?.title ?? 'library'}…</Text>
         </View>
       ) : null}
@@ -243,188 +246,208 @@ export function SearchScreen({ onBack, onPickLibrary, onShowDetails }: SearchScr
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
-  backButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-  },
-  backButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  libraryCard: {
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-    backgroundColor: 'rgba(0,0,0,0.02)',
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  cardBody: {
-    marginTop: 6,
-    fontSize: 15,
-  },
-  secondaryButton: {
-    marginTop: 12,
-    alignSelf: 'flex-start',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.2)',
-  },
-  secondaryButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
-  },
-  searchInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.15)',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    backgroundColor: '#fff',
-  },
-  searchInputDisabled: {
-    backgroundColor: 'rgba(0,0,0,0.04)',
-  },
-  primaryButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 999,
-    backgroundColor: '#111827',
-  },
-  primaryButtonDisabled: {
-    backgroundColor: '#9ca3af',
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 8,
-  },
-  loadingText: {
-    fontSize: 12,
-    opacity: 0.7,
-  },
-  listContent: {
-    paddingBottom: 24,
-  },
-  resultCard: {
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    marginBottom: 10,
-  },
-  resultMain: {
-    gap: 4,
-  },
-  resultActions: {
-    marginTop: 10,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  resultActionButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.2)',
-  },
-  resultActionText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  resultTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  resultMeta: {
-    marginTop: 4,
-    fontSize: 12,
-    opacity: 0.65,
-  },
-  stateCard: {
-    paddingVertical: 32,
-    alignItems: 'center',
-  },
-  recentHeader: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  clearButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-  },
-  clearButtonText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  recentChip: {
-    alignSelf: 'stretch',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-    backgroundColor: 'rgba(0,0,0,0.03)',
-    marginBottom: 10,
-  },
-  recentChipText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  stateTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  stateBody: {
-    marginTop: 6,
-    fontSize: 12,
-    opacity: 0.6,
-    textAlign: 'center',
-  },
-});
+const createStyles = (palette: AppPalette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      backgroundColor: palette.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 16,
+    },
+    backButton: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surface,
+    },
+    backButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    libraryCard: {
+      padding: 16,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surface,
+      marginBottom: 16,
+    },
+    cardTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    cardBody: {
+      marginTop: 6,
+      fontSize: 15,
+      color: palette.textMuted,
+    },
+    secondaryButton: {
+      marginTop: 12,
+      alignSelf: 'flex-start',
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.secondary,
+    },
+    secondaryButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: palette.secondaryText,
+    },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 12,
+    },
+    searchInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: palette.inputBorder,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      fontSize: 14,
+      backgroundColor: palette.inputBackground,
+      color: palette.inputText,
+    },
+    searchInputDisabled: {
+      backgroundColor: palette.surfaceMuted,
+      color: palette.textSubtle,
+    },
+    primaryButton: {
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 999,
+      backgroundColor: palette.primary,
+    },
+    primaryButtonDisabled: {
+      opacity: 0.55,
+    },
+    primaryButtonText: {
+      color: palette.primaryText,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    loadingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 8,
+    },
+    loadingText: {
+      fontSize: 12,
+      color: palette.textSubtle,
+    },
+    listContent: {
+      paddingBottom: 24,
+    },
+    resultCard: {
+      padding: 14,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surface,
+      marginBottom: 10,
+    },
+    resultMain: {
+      gap: 4,
+    },
+    resultActions: {
+      marginTop: 10,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    resultActionButton: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.secondary,
+    },
+    resultActionText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: palette.secondaryText,
+    },
+    resultTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    resultMeta: {
+      marginTop: 4,
+      fontSize: 12,
+      color: palette.textSubtle,
+    },
+    stateCard: {
+      paddingVertical: 32,
+      alignItems: 'center',
+    },
+    recentHeader: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    clearButton: {
+      paddingVertical: 4,
+      paddingHorizontal: 10,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.secondary,
+    },
+    clearButtonText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: palette.secondaryText,
+    },
+    recentChip: {
+      alignSelf: 'stretch',
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surface,
+      marginBottom: 10,
+    },
+    recentChipText: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: palette.text,
+    },
+    stateTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: palette.text,
+      textAlign: 'center',
+    },
+    stateBody: {
+      marginTop: 6,
+      fontSize: 12,
+      color: palette.textSubtle,
+      textAlign: 'center',
+    },
+  });

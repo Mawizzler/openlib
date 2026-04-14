@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useActiveLibrary } from '@/src/application/state/ActiveLibraryStore';
 import { providersRegistryRepository } from '@/src/infrastructure/providers/ProvidersRegistryRepository';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
+import { useAppPalette, type AppPalette } from '@/src/presentation/theme/palette';
 
 type LibraryPickerScreenProps = {
   onClose: () => void;
@@ -62,6 +63,8 @@ const filterAndSortProviders = (providers: OpacappNormalizedProvider[], query: s
 export function LibraryPickerScreen({ onClose }: LibraryPickerScreenProps) {
   const { activeLibraryId, setActiveLibraryId } = useActiveLibrary();
   const [query, setQuery] = useState('');
+  const palette = useAppPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
 
   const providers = useMemo(() => providersRegistryRepository.listProviders(), []);
   const filteredProviders = useMemo(
@@ -95,7 +98,7 @@ export function LibraryPickerScreen({ onClose }: LibraryPickerScreenProps) {
         value={query}
         onChangeText={setQuery}
         placeholder="Search by name, city, or ID"
-        placeholderTextColor="rgba(0,0,0,0.4)"
+        placeholderTextColor={palette.inputPlaceholder}
         style={styles.searchInput}
         returnKeyType="search"
         onSubmitEditing={handleSubmit}
@@ -139,101 +142,115 @@ export function LibraryPickerScreen({ onClose }: LibraryPickerScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
-  backButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-  },
-  backButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  searchInput: {
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.15)',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    marginBottom: 12,
-  },
-  listContent: {
-    paddingBottom: 24,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    marginBottom: 10,
-  },
-  rowContent: {
-    flex: 1,
-    marginRight: 12,
-  },
-  rowTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  rowMeta: {
-    marginTop: 4,
-    fontSize: 12,
-    opacity: 0.6,
-  },
-  badge: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-  },
-  badgeActive: {
-    backgroundColor: '#111827',
-  },
-  badgeInactive: {
-    backgroundColor: '#e5e7eb',
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  badgeTextActive: {
-    color: '#fff',
-  },
-  badgeTextInactive: {
-    color: '#111827',
-  },
-  emptyState: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  emptySubtitle: {
-    marginTop: 6,
-    fontSize: 12,
-    opacity: 0.6,
-  },
-});
+const createStyles = (palette: AppPalette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      backgroundColor: palette.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 16,
+    },
+    backButton: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surface,
+    },
+    backButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    searchInput: {
+      borderWidth: 1,
+      borderColor: palette.inputBorder,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      fontSize: 14,
+      marginBottom: 12,
+      backgroundColor: palette.inputBackground,
+      color: palette.inputText,
+    },
+    listContent: {
+      paddingBottom: 24,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 14,
+      paddingHorizontal: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surface,
+      marginBottom: 10,
+    },
+    rowContent: {
+      flex: 1,
+      marginRight: 12,
+    },
+    rowTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    rowMeta: {
+      marginTop: 4,
+      fontSize: 12,
+      color: palette.textSubtle,
+    },
+    badge: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 999,
+      borderWidth: 1,
+    },
+    badgeActive: {
+      backgroundColor: palette.primary,
+      borderColor: palette.primary,
+    },
+    badgeInactive: {
+      backgroundColor: palette.surfaceMuted,
+      borderColor: palette.border,
+    },
+    badgeText: {
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    badgeTextActive: {
+      color: palette.primaryText,
+    },
+    badgeTextInactive: {
+      color: palette.text,
+    },
+    emptyState: {
+      paddingVertical: 40,
+      alignItems: 'center',
+    },
+    emptyTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    emptySubtitle: {
+      marginTop: 6,
+      fontSize: 12,
+      color: palette.textSubtle,
+      textAlign: 'center',
+    },
+  });

@@ -1,7 +1,9 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useMemo } from 'react';
 
 import { useActiveLibrary } from '@/src/application/state/ActiveLibraryStore';
 import { useAccountSession } from '@/src/application/state/AccountSessionStore';
+import { useAppPalette, type AppPalette } from '@/src/presentation/theme/palette';
 
 type HomeScreenProps = {
   onPickLibrary: () => void;
@@ -33,6 +35,8 @@ export function HomeScreen({
 }: HomeScreenProps) {
   const { activeLibrary, isLoading } = useActiveLibrary();
   const { status, identity } = useAccountSession();
+  const palette = useAppPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
 
   return (
     <View style={styles.container}>
@@ -100,70 +104,76 @@ export function HomeScreen({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '600',
-  },
-  subtitle: {
-    marginTop: 6,
-    fontSize: 14,
-    opacity: 0.7,
-  },
-  card: {
-    marginTop: 24,
-    padding: 18,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-    backgroundColor: 'rgba(0,0,0,0.02)',
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  cardBody: {
-    marginTop: 8,
-    fontSize: 16,
-  },
-  cardMeta: {
-    marginTop: 6,
-    fontSize: 12,
-    opacity: 0.65,
-  },
-  primaryButton: {
-    marginTop: 16,
-    alignSelf: 'flex-start',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 999,
-    backgroundColor: '#111827',
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  buttonRow: {
-    marginTop: 16,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  secondaryButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#111827',
-  },
-  secondaryButtonText: {
-    color: '#111827',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-});
+const createStyles = (palette: AppPalette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: 24,
+      backgroundColor: palette.background,
+    },
+    title: {
+      fontSize: 26,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    subtitle: {
+      marginTop: 6,
+      fontSize: 14,
+      color: palette.textSubtle,
+    },
+    card: {
+      marginTop: 24,
+      padding: 18,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surface,
+    },
+    cardTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    cardBody: {
+      marginTop: 8,
+      fontSize: 16,
+      color: palette.textMuted,
+    },
+    cardMeta: {
+      marginTop: 6,
+      fontSize: 12,
+      color: palette.textSubtle,
+    },
+    primaryButton: {
+      marginTop: 16,
+      alignSelf: 'flex-start',
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 999,
+      backgroundColor: palette.primary,
+    },
+    primaryButtonText: {
+      color: palette.primaryText,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    buttonRow: {
+      marginTop: 16,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    secondaryButton: {
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.secondary,
+    },
+    secondaryButtonText: {
+      color: palette.secondaryText,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+  });

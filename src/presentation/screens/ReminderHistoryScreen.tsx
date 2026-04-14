@@ -1,7 +1,9 @@
 import { StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { useMemo } from 'react';
 
 import { useReminderState } from '@/src/application/state/ReminderStateStore';
 import type { ReminderItem } from '@/src/domain/models/reminders';
+import { useAppPalette, type AppPalette } from '@/src/presentation/theme/palette';
 
 type ReminderHistoryScreenProps = {
   onBack: () => void;
@@ -26,6 +28,8 @@ const getReminderMeta = (reminder: ReminderItem) => {
 export function ReminderHistoryScreen({ onBack }: ReminderHistoryScreenProps) {
   const { state, isLoading, toggleReminder } = useReminderState();
   const scheduled = state.scheduled;
+  const palette = useAppPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
 
   return (
     <View style={styles.container}>
@@ -58,6 +62,8 @@ export function ReminderHistoryScreen({ onBack }: ReminderHistoryScreenProps) {
                 value={reminder.status === 'scheduled'}
                 onValueChange={() => toggleReminder(reminder.id)}
                 disabled={isLoading}
+                trackColor={{ false: palette.border, true: palette.primary }}
+                thumbColor={palette.surface}
               />
             </View>
             <Text style={styles.cardText}>{getReminderMeta(reminder)}</Text>
@@ -70,61 +76,69 @@ export function ReminderHistoryScreen({ onBack }: ReminderHistoryScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  backButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-  },
-  backButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  subtitle: {
-    marginTop: 6,
-    fontSize: 14,
-    opacity: 0.7,
-  },
-  body: {
-    marginTop: 16,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  card: {
-    marginTop: 20,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  cardText: {
-    marginTop: 8,
-    fontSize: 13,
-    opacity: 0.75,
-  },
-});
+const createStyles = (palette: AppPalette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: 24,
+      backgroundColor: palette.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    backButton: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surface,
+    },
+    backButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    subtitle: {
+      marginTop: 6,
+      fontSize: 14,
+      color: palette.textSubtle,
+    },
+    body: {
+      marginTop: 16,
+      fontSize: 14,
+      lineHeight: 20,
+      color: palette.textMuted,
+    },
+    card: {
+      marginTop: 20,
+      padding: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surface,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    cardTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    cardText: {
+      marginTop: 8,
+      fontSize: 13,
+      color: palette.textSubtle,
+    },
+  });

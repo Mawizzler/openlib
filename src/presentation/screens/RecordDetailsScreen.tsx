@@ -14,6 +14,7 @@ import { useReminderState } from '@/src/application/state/ReminderStateStore';
 import { RecordDetailsFlowService } from '@/src/application/services/opac/RecordDetailsFlowService';
 import type { OpacAvailability, OpacBriefRecord, OpacIdentifier, OpacRecord } from '@/src/domain/models/opac';
 import { providersRegistryRepository } from '@/src/infrastructure/providers/ProvidersRegistryRepository';
+import { useAppPalette, type AppPalette } from '@/src/presentation/theme/palette';
 
 type RecordDetailsScreenProps = {
   record: OpacBriefRecord;
@@ -53,6 +54,8 @@ const formatTimestamp = (value: string) => {
 export function RecordDetailsScreen({ record, libraryId, onBack }: RecordDetailsScreenProps) {
   const { activeLibrary, isLoading: isLibraryLoading } = useActiveLibrary();
   const { state: reminderState, createManualReminder, toggleReminder } = useReminderState();
+  const palette = useAppPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
   const provider = useMemo(() => {
     if (libraryId) {
       return providersRegistryRepository.getProviderById(libraryId) ?? activeLibrary;
@@ -117,7 +120,7 @@ export function RecordDetailsScreen({ record, libraryId, onBack }: RecordDetails
 
       {status === 'loading' ? (
         <View style={styles.loadingRow}>
-          <ActivityIndicator size="small" color="#111827" />
+          <ActivityIndicator size="small" color={palette.primary} />
           <Text style={styles.loadingText}>
             Loading full details{provider?.title ? ` from ${provider.title}` : ''}…
           </Text>
@@ -197,6 +200,8 @@ export function RecordDetailsScreen({ record, libraryId, onBack }: RecordDetails
               <Switch
                 value={reminder.status === 'scheduled'}
                 onValueChange={() => toggleReminder(reminder.id)}
+                trackColor={{ false: palette.border, true: palette.primary }}
+                thumbColor={palette.surface}
               />
             </View>
           ))
@@ -206,120 +211,131 @@ export function RecordDetailsScreen({ record, libraryId, onBack }: RecordDetails
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
-  backButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-  },
-  backButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
-  },
-  loadingText: {
-    fontSize: 12,
-    opacity: 0.7,
-  },
-  stateCard: {
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
-    backgroundColor: 'rgba(17,24,39,0.04)',
-    marginBottom: 12,
-  },
-  stateTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  stateBody: {
-    marginTop: 6,
-    fontSize: 12,
-    opacity: 0.7,
-  },
-  secondaryButton: {
-    marginTop: 10,
-    alignSelf: 'flex-start',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-  },
-  secondaryButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  card: {
-    padding: 18,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-    backgroundColor: 'rgba(0,0,0,0.02)',
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  cardBody: {
-    marginTop: 10,
-    fontSize: 14,
-  },
-  cardMeta: {
-    marginTop: 12,
-    fontSize: 12,
-    opacity: 0.6,
-  },
-  reminderActions: {
-    marginTop: 12,
-    flexDirection: 'row',
-    gap: 10,
-    flexWrap: 'wrap',
-  },
-  reminderRow: {
-    marginTop: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  reminderText: {
-    flex: 1,
-  },
-  linkButton: {
-    marginTop: 14,
-    alignSelf: 'flex-start',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    backgroundColor: '#111827',
-  },
-  linkButtonText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-});
+const createStyles = (palette: AppPalette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      backgroundColor: palette.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 16,
+    },
+    backButton: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surface,
+    },
+    backButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    loadingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 12,
+    },
+    loadingText: {
+      fontSize: 12,
+      color: palette.textSubtle,
+    },
+    stateCard: {
+      padding: 14,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surface,
+      marginBottom: 12,
+    },
+    stateTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    stateBody: {
+      marginTop: 6,
+      fontSize: 12,
+      color: palette.textSubtle,
+    },
+    secondaryButton: {
+      marginTop: 10,
+      alignSelf: 'flex-start',
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.secondary,
+    },
+    secondaryButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: palette.secondaryText,
+    },
+    card: {
+      padding: 18,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surface,
+      marginBottom: 14,
+    },
+    cardTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    cardBody: {
+      marginTop: 10,
+      fontSize: 14,
+      color: palette.textMuted,
+    },
+    cardMeta: {
+      marginTop: 12,
+      fontSize: 12,
+      color: palette.textSubtle,
+    },
+    reminderActions: {
+      marginTop: 12,
+      flexDirection: 'row',
+      gap: 10,
+      flexWrap: 'wrap',
+    },
+    reminderRow: {
+      marginTop: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    reminderText: {
+      flex: 1,
+    },
+    linkButton: {
+      marginTop: 14,
+      alignSelf: 'flex-start',
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: 999,
+      backgroundColor: palette.primary,
+    },
+    linkButtonText: {
+      color: palette.primaryText,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+  });

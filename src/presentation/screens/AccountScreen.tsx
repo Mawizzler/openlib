@@ -1,8 +1,9 @@
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { useActiveLibrary } from '@/src/application/state/ActiveLibraryStore';
 import { useAccountSession } from '@/src/application/state/AccountSessionStore';
+import { useAppPalette, type AppPalette } from '@/src/presentation/theme/palette';
 
 type AccountScreenProps = {
   onBack: () => void;
@@ -28,6 +29,8 @@ export function AccountScreen({ onBack, onPickLibrary }: AccountScreenProps) {
     useAccountSession();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const palette = useAppPalette();
+  const styles = useMemo(() => createStyles(palette), [palette]);
 
   const canSubmit = Boolean(activeLibrary) && status !== 'logging_in';
   const isLoggedIn = status === 'logged_in';
@@ -92,7 +95,7 @@ export function AccountScreen({ onBack, onPickLibrary }: AccountScreenProps) {
           value={username}
           onChangeText={setUsername}
           placeholder="Library card number"
-          placeholderTextColor="rgba(0,0,0,0.4)"
+          placeholderTextColor={palette.inputPlaceholder}
           style={styles.input}
           autoCapitalize="none"
           editable={canSubmit}
@@ -101,7 +104,7 @@ export function AccountScreen({ onBack, onPickLibrary }: AccountScreenProps) {
           value={password}
           onChangeText={setPassword}
           placeholder="PIN / password"
-          placeholderTextColor="rgba(0,0,0,0.4)"
+          placeholderTextColor={palette.inputPlaceholder}
           style={styles.input}
           secureTextEntry
           editable={canSubmit}
@@ -143,115 +146,126 @@ export function AccountScreen({ onBack, onPickLibrary }: AccountScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
-  backButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-  },
-  backButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  card: {
-    marginBottom: 16,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-    backgroundColor: 'rgba(0,0,0,0.02)',
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  cardBody: {
-    marginTop: 8,
-    fontSize: 15,
-  },
-  cardMeta: {
-    marginTop: 6,
-    fontSize: 12,
-    opacity: 0.65,
-  },
-  input: {
-    marginTop: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-    backgroundColor: '#fff',
-    fontSize: 14,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 16,
-  },
-  primaryButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 999,
-    backgroundColor: '#111827',
-  },
-  primaryButtonDisabled: {
-    backgroundColor: 'rgba(17,24,39,0.4)',
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    marginTop: 12,
-    alignSelf: 'flex-start',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-  },
-  secondaryButtonInline: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-  },
-  secondaryButtonDisabled: {
-    opacity: 0.5,
-  },
-  secondaryButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  feedbackText: {
-    marginTop: 10,
-    fontSize: 12,
-  },
-  feedbackInfo: {
-    color: '#1f2937',
-  },
-  feedbackError: {
-    color: '#b91c1c',
-  },
-});
+const createStyles = (palette: AppPalette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      backgroundColor: palette.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 16,
+    },
+    backButton: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surface,
+    },
+    backButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    title: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    card: {
+      marginBottom: 16,
+      padding: 16,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surface,
+    },
+    cardTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: palette.text,
+    },
+    cardBody: {
+      marginTop: 8,
+      fontSize: 15,
+      color: palette.textMuted,
+    },
+    cardMeta: {
+      marginTop: 6,
+      fontSize: 12,
+      color: palette.textSubtle,
+    },
+    input: {
+      marginTop: 12,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: palette.inputBorder,
+      backgroundColor: palette.inputBackground,
+      color: palette.inputText,
+      fontSize: 14,
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginTop: 16,
+    },
+    primaryButton: {
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 999,
+      backgroundColor: palette.primary,
+    },
+    primaryButtonDisabled: {
+      opacity: 0.55,
+    },
+    primaryButtonText: {
+      color: palette.primaryText,
+      fontSize: 13,
+      fontWeight: '600',
+    },
+    secondaryButton: {
+      marginTop: 12,
+      alignSelf: 'flex-start',
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.secondary,
+    },
+    secondaryButtonInline: {
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.secondary,
+    },
+    secondaryButtonDisabled: {
+      opacity: 0.55,
+    },
+    secondaryButtonText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: palette.secondaryText,
+    },
+    feedbackText: {
+      marginTop: 10,
+      fontSize: 12,
+    },
+    feedbackInfo: {
+      color: palette.textSubtle,
+    },
+    feedbackError: {
+      color: palette.dangerText,
+    },
+  });
