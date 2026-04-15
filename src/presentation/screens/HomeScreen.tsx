@@ -1,5 +1,6 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useMemo } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useActiveLibrary } from '@/src/application/state/ActiveLibraryStore';
 import { useAccountSession } from '@/src/application/state/AccountSessionStore';
@@ -41,7 +42,7 @@ export function HomeScreen({
   const hasLibrary = Boolean(activeLibrary) && !isLoading;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <Text style={styles.title}>Openlib</Text>
       <Text style={styles.subtitle}>Find books, manage your account, and stay ahead of due dates.</Text>
 
@@ -114,7 +115,7 @@ export function HomeScreen({
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
