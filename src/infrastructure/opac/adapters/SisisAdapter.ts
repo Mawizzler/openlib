@@ -254,7 +254,22 @@ export class SisisAdapter implements LibrarySystemAdapter {
   }
 
   private normalizeBaseUrl(baseUrl: string): string {
-    return baseUrl.replace(/\/+$/, '');
+    const trimmed = baseUrl.replace(/\/+$/, '');
+    try {
+      const url = new URL(trimmed);
+      if (
+        String(this.provider.id) === '8714' &&
+        url.hostname.toLowerCase() === 'webopac.stadtbibliothek-leipzig.de'
+      ) {
+        // Leipzig's legacy webopac hostname presents a mismatched TLS certificate;
+        // bibliothekskatalog.leipzig.de is the canonical SISIS endpoint exposed by the library.
+        url.hostname = 'bibliothekskatalog.leipzig.de';
+        return url.toString().replace(/\/+$/, '');
+      }
+    } catch {
+      // Keep original URL if parsing fails.
+    }
+    return trimmed;
   }
 
   private resolveDetailUrl(input: { recordId: string; detailUrl?: string }): string | null {
