@@ -32,6 +32,7 @@ export type OpacappNormalizedProvider = {
   title: string;
   api: string;
   baseUrl: string;
+  healthStatus?: 'green' | 'red' | 'unsupported' | 'unknown';
   authHint: OpacappAuthHint;
   location?: OpacappProviderLocation;
   accountSupported?: boolean;

@@ -1,9 +1,9 @@
+import React, { useMemo, useState } from 'react';
 import { FlatList, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useMemo, useState } from 'react';
 
-import { useActiveLibrary } from '@/src/application/state/ActiveLibraryStore';
-import { providersRegistryRepository } from '@/src/infrastructure/providers/ProvidersRegistryRepository';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
+import { providersRegistryRepository } from '@/src/infrastructure/providers/ProvidersRegistryRepository';
+import { useActiveLibrary } from '@/src/application/state/ActiveLibraryStore';
 import { useAppPalette, type AppPalette } from '@/src/presentation/theme/palette';
 
 type LibraryPickerScreenProps = {
@@ -13,37 +13,33 @@ type LibraryPickerScreenProps = {
 const formatLocation = (provider: OpacappNormalizedProvider) => {
   const location = provider.location;
   if (!location) return '';
-  return [location.city, location.state, location.country].filter(Boolean).join(', ');
+
+  return [location.city, location.state, location.country]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .join(', ');
 };
 
-const normalizeQuery = (query: string) => query.trim().toLowerCase();
+const normalizeQuery = (value: string) => value.trim().toLowerCase();
 
 const scoreProvider = (provider: OpacappNormalizedProvider, query: string) => {
-  const normalized = normalizeQuery(query);
-  if (!normalized) return 0;
+  if (!query) return 0;
 
   const title = provider.title.toLowerCase();
   const id = provider.id.toLowerCase();
   const api = provider.api.toLowerCase();
   const location = formatLocation(provider).toLowerCase();
-  const haystack = [title, id, api, location].filter(Boolean).join(' ');
-  if (!haystack.includes(normalized)) return 0;
 
-  const tokens = normalized.split(/\s+/).filter(Boolean);
-  const allTokensPresent = tokens.every((token) => haystack.includes(token));
-  let score = 0;
+  if (title === query) return 100;
+  if (id === query) return 95;
+  if (title.startsWith(query)) return 85;
+  if (id.startsWith(query)) return 80;
+  if (location.startsWith(query)) return 70;
+  if (title.includes(query)) return 60;
+  if (location.includes(query)) return 55;
+  if (api.includes(query)) return 45;
+  if (id.includes(query)) return 40;
 
-  if (id === normalized) score += 120;
-  if (title === normalized) score += 110;
-  if (title.startsWith(normalized)) score += 80;
-  if (id.startsWith(normalized)) score += 70;
-  if (title.includes(normalized)) score += 50;
-  if (location.startsWith(normalized)) score += 35;
-  if (location.includes(normalized)) score += 25;
-  if (api.includes(normalized)) score += 15;
-  if (allTokensPresent) score += 10;
-
-  return score;
+  return -1;
 };
 
 const filterAndSortProviders = (providers: OpacappNormalizedProvider[], query: string) => {
@@ -52,19 +48,53 @@ const filterAndSortProviders = (providers: OpacappNormalizedProvider[], query: s
 
   return providers
     .map((provider) => ({ provider, score: scoreProvider(provider, normalized) }))
-    .filter((entry) => entry.score > 0)
+    .filter((entry) => entry.score >= 0)
     .sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
+      if (a.score !== b.score) return b.score - a.score;
       return a.provider.title.localeCompare(b.provider.title);
     })
     .map((entry) => entry.provider);
 };
 
+const getHealthLabel = (provider: OpacappNormalizedProvider, isActive: boolean) => {
+  if (isActive) {
+    return 'Active';
+  }
+
+  switch (provider.healthStatus) {
+    case 'green':
+      return 'Healthy';
+    case 'red':
+      return 'Failing';
+    case 'unsupported':
+      return 'Unsupported';
+    default:
+      return 'Unknown';
+  }
+};
+
+const getHealthBadgeStyle = (provider: OpacappNormalizedProvider, isActive: boolean) => {
+  if (isActive) {
+    return 'active';
+  }
+
+  switch (provider.healthStatus) {
+    case 'green':
+      return 'healthy';
+    case 'red':
+      return 'down';
+    case 'unsupported':
+      return 'degraded';
+    default:
+      return 'unknown';
+  }
+};
+
 export function LibraryPickerScreen({ onClose }: LibraryPickerScreenProps) {
-  const { activeLibraryId, setActiveLibraryId } = useActiveLibrary();
-  const [query, setQuery] = useState('');
   const palette = useAppPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
+  const { activeLibraryId, setActiveLibraryId } = useActiveLibrary();
+  const [query, setQuery] = useState('');
 
   const providers = useMemo(() => providersRegistryRepository.listProviders(), []);
   const filteredProviders = useMemo(
@@ -111,15 +141,34 @@ export function LibraryPickerScreen({ onClose }: LibraryPickerScreenProps) {
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => {
           const isActive = item.id === activeLibraryId;
+          const healthBadge = getHealthBadgeStyle(item, isActive);
           return (
             <TouchableOpacity onPress={() => handleSelect(item)} style={styles.row}>
               <View style={styles.rowContent}>
                 <Text style={styles.rowTitle}>{item.title}</Text>
                 <Text style={styles.rowMeta}>{formatLocation(item) || item.api}</Text>
               </View>
-              <View style={[styles.badge, isActive ? styles.badgeActive : styles.badgeInactive]}>
-                <Text style={[styles.badgeText, isActive ? styles.badgeTextActive : styles.badgeTextInactive]}>
-                  {isActive ? 'Active' : 'Select'}
+              <View
+                style={[
+                  styles.badge,
+                  healthBadge === 'active' && styles.badgeActive,
+                  healthBadge === 'healthy' && styles.badgeHealthy,
+                  healthBadge === 'degraded' && styles.badgeDegraded,
+                  healthBadge === 'down' && styles.badgeDown,
+                  healthBadge === 'unknown' && styles.badgeUnknown,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.badgeText,
+                    healthBadge === 'active' && styles.badgeTextActive,
+                    healthBadge === 'healthy' && styles.badgeTextHealthy,
+                    healthBadge === 'degraded' && styles.badgeTextDegraded,
+                    healthBadge === 'down' && styles.badgeTextDown,
+                    healthBadge === 'unknown' && styles.badgeTextUnknown,
+                  ]}
+                >
+                  {getHealthLabel(item, isActive)}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -224,7 +273,19 @@ const createStyles = (palette: AppPalette) =>
       backgroundColor: palette.primary,
       borderColor: palette.primary,
     },
-    badgeInactive: {
+    badgeHealthy: {
+      backgroundColor: '#e7f8ef',
+      borderColor: '#5abf88',
+    },
+    badgeDegraded: {
+      backgroundColor: '#fff6e8',
+      borderColor: '#e1a23a',
+    },
+    badgeDown: {
+      backgroundColor: '#ffecec',
+      borderColor: '#d66767',
+    },
+    badgeUnknown: {
       backgroundColor: palette.surfaceMuted,
       borderColor: palette.border,
     },
@@ -235,7 +296,16 @@ const createStyles = (palette: AppPalette) =>
     badgeTextActive: {
       color: palette.primaryText,
     },
-    badgeTextInactive: {
+    badgeTextHealthy: {
+      color: '#1f7a4d',
+    },
+    badgeTextDegraded: {
+      color: '#a06a16',
+    },
+    badgeTextDown: {
+      color: '#b32626',
+    },
+    badgeTextUnknown: {
       color: palette.text,
     },
     emptyState: {

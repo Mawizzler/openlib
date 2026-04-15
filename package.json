@@ -12,7 +12,8 @@
     "qa:mvp": "tsx scripts/mvp-smoke-check.ts",
     "reminders:demo": "tsx scripts/reminder-demo.ts",
     "sisis:demo": "tsx scripts/sisis-search-demo.ts",
-    "vufind:demo": "tsx scripts/vufind-search-demo.ts"
+    "vufind:demo": "tsx scripts/vufind-search-demo.ts",
+    "artifact:provider-health-matrix": "tsx scripts/provider-health-matrix.ts"
   },
   "dependencies": {
     "@expo/html-elements": "^0.10.1",

@@ -1,4 +1,5 @@
 import type { OpacappConfigSource, OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
+import { providerHealthRepository } from '@/src/infrastructure/providers/ProviderHealthRepository';
 
 export type ProvidersRegistryTotals = {
   files: number;
@@ -24,12 +25,21 @@ const registry = require('../../../data/providers.registry.json') as ProvidersRe
 
 const providers = Array.isArray(registry.providers) ? registry.providers : [];
 
+const withHealthStatus = (provider: OpacappNormalizedProvider): OpacappNormalizedProvider => ({
+  ...provider,
+  healthStatus: providerHealthRepository.getStatus(provider.id),
+});
+
 export const providersRegistryRepository = {
   listProviders(): OpacappNormalizedProvider[] {
-    return providers;
+    return providers.map(withHealthStatus);
   },
   getProviderById(id: string): OpacappNormalizedProvider | null {
-    return providers.find((provider) => provider.id === id) ?? null;
+    const provider = providers.find((entry) => entry.id === id);
+    if (!provider) {
+      return null;
+    }
+    return withHealthStatus(provider);
   },
   getSource(): OpacappConfigSource {
     return {
