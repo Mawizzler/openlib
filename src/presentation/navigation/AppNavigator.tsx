@@ -22,11 +22,11 @@ type Route =
 
 export function AppNavigator() {
   const [route, setRoute] = useState<Route>({ name: 'Home' });
-  const [previousRoute, setPreviousRoute] = useState<Route | null>(null);
+  const [history, setHistory] = useState<Route[]>([]);
   const { activeLibrary, isLoading } = useActiveLibrary();
 
   const goToLibraryPicker = () => {
-    setPreviousRoute(route);
+    setHistory((prev) => [...prev, route]);
     setRoute({ name: 'LibraryPicker' });
   };
 
@@ -40,10 +40,30 @@ export function AppNavigator() {
 
   const handleCloseLibraryPicker = () => {
     if (!activeLibrary && !isLoading) {
+      setHistory([]);
       setRoute({ name: 'Home' });
       return;
     }
-    setRoute(previousRoute ?? { name: 'Home' });
+    setHistory((prev) => {
+      const nextHistory = [...prev];
+      const fallback = nextHistory.pop() ?? { name: 'Home' };
+      setRoute(fallback);
+      return nextHistory;
+    });
+  };
+
+  const navigateTo = (nextRoute: Route) => {
+    setHistory((prev) => [...prev, route]);
+    setRoute(nextRoute);
+  };
+
+  const goBack = (fallback: Route = { name: 'Home' }) => {
+    setHistory((prev) => {
+      const nextHistory = [...prev];
+      const previous = nextHistory.pop() ?? fallback;
+      setRoute(previous);
+      return nextHistory;
+    });
   };
 
   const handleShowDetails = (record: OpacBriefRecord, libraryId: string | null) => {
@@ -65,7 +85,7 @@ export function AppNavigator() {
       case 'Account':
         return (
           <AccountScreen
-            onBack={() => setRoute({ name: 'Home' })}
+            onBack={() => goBack({ name: 'Home' })}
             onPickLibrary={goToLibraryPicker}
           />
         );
@@ -74,7 +94,7 @@ export function AppNavigator() {
       case 'Search':
         return (
           <SearchScreen
-            onBack={() => setRoute({ name: 'Home' })}
+            onBack={() => goBack({ name: 'Home' })}
             onPickLibrary={goToLibraryPicker}
             onShowDetails={handleShowDetails}
           />
@@ -82,24 +102,24 @@ export function AppNavigator() {
       case 'ReminderSettings':
         return (
           <ReminderSettingsScreen
-            onBack={() => setRoute({ name: 'Home' })}
-            onOpenHistory={() => setRoute({ name: 'ReminderHistory' })}
+            onBack={() => goBack({ name: 'Home' })}
+            onOpenHistory={() => navigateTo({ name: 'ReminderHistory' })}
           />
         );
       case 'ReminderHistory':
-        return <ReminderHistoryScreen onBack={() => setRoute({ name: 'Home' })} />;
+        return <ReminderHistoryScreen onBack={() => goBack({ name: 'Home' })} />;
       case 'Details':
         return (
           <RecordDetailsScreen
             record={route.params.record}
             libraryId={route.params.libraryId}
-            onBack={() => setRoute({ name: 'Search' })}
+            onBack={() => goBack({ name: 'Search' })}
           />
         );
       default:
         return null;
     }
-  }, [route, previousRoute, activeLibrary, isLoading]);
+  }, [route, activeLibrary, isLoading]);
 
   return <View style={{ flex: 1 }}>{routeView}</View>;
 }
