@@ -1,6 +1,8 @@
 import {
   ActivityIndicator,
   Linking,
+  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -110,7 +112,8 @@ export function RecordDetailsScreen({ record, libraryId, onBack }: RecordDetails
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
@@ -207,7 +210,8 @@ export function RecordDetailsScreen({ record, libraryId, onBack }: RecordDetails
           ))
         )}
       </View>
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -226,12 +230,19 @@ const createStyles = (palette: AppPalette) =>
       marginBottom: 16,
     },
     backButton: {
-      paddingVertical: 6,
-      paddingHorizontal: 12,
+      minWidth: 44,
+      minHeight: 44,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
       borderRadius: 999,
       borderWidth: 1,
       borderColor: palette.border,
       backgroundColor: palette.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    scrollContent: {
+      paddingBottom: 24,
     },
     backButtonText: {
       fontSize: 12,

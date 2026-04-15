@@ -1,5 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { FlatList, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  FlatList,
+  Keyboard,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { providersRegistryRepository } from '@/src/infrastructure/providers/ProvidersRegistryRepository';
@@ -116,7 +125,7 @@ export function LibraryPickerScreen({ onClose }: LibraryPickerScreenProps) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
@@ -187,7 +196,7 @@ export function LibraryPickerScreen({ onClose }: LibraryPickerScreenProps) {
           </View>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -206,12 +215,16 @@ const createStyles = (palette: AppPalette) =>
       marginBottom: 16,
     },
     backButton: {
-      paddingVertical: 6,
-      paddingHorizontal: 12,
+      minWidth: 44,
+      minHeight: 44,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
       borderRadius: 999,
       borderWidth: 1,
       borderColor: palette.border,
       backgroundColor: palette.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     backButtonText: {
       fontSize: 12,
