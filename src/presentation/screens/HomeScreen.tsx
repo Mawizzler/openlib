@@ -38,44 +38,45 @@ export function HomeScreen({
   const palette = useAppPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
 
+  const hasLibrary = Boolean(activeLibrary) && !isLoading;
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Discover</Text>
-      <Text style={styles.subtitle}>Browse and save from your library</Text>
+      <Text style={styles.title}>Openlib</Text>
+      <Text style={styles.subtitle}>Find books, manage your account, and stay ahead of due dates.</Text>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Active library</Text>
-        <Text style={styles.cardBody}>
-          {isLoading ? 'Loading selection…' : activeLibrary?.title ?? 'No library selected yet'}
+      <View style={styles.heroCard}>
+        <Text style={styles.heroEyebrow}>{hasLibrary ? 'Ready to search' : 'First step required'}</Text>
+        <Text style={styles.heroTitle}>
+          {hasLibrary ? `Using ${activeLibrary?.title}` : 'Choose your library to unlock the app'}
         </Text>
-        {activeLibrary?.location ? (
-          <Text style={styles.cardMeta}>
-            {[activeLibrary.location.city, activeLibrary.location.state, activeLibrary.location.country]
-              .filter(Boolean)
-              .join(', ')}
-          </Text>
-        ) : null}
+        <Text style={styles.heroBody}>
+          {hasLibrary
+            ? 'Search, account, and reminders are now enabled.'
+            : 'Openlib is library-first: select one library, then continue to search and account features.'}
+        </Text>
         <TouchableOpacity onPress={onPickLibrary} style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>
-            {activeLibrary ? 'Change library' : 'Choose a library'}
-          </Text>
+          <Text style={styles.primaryButtonText}>{hasLibrary ? 'Change library' : 'Choose a library'}</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Search the catalog</Text>
+      <View style={[styles.card, !hasLibrary && styles.cardLocked]}>
+        <Text style={styles.cardTitle}>1) Search the catalog</Text>
         <Text style={styles.cardBody}>
-          {activeLibrary
-            ? `Explore ${activeLibrary.title} holdings.`
-            : 'Select a library to start searching.'}
+          {hasLibrary
+            ? `Explore ${activeLibrary?.title} holdings.`
+            : 'Locked until a library is selected.'}
         </Text>
-        <TouchableOpacity onPress={onStartSearch} style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Start search</Text>
+        <TouchableOpacity
+          onPress={hasLibrary ? onStartSearch : onPickLibrary}
+          style={[styles.secondaryButton, !hasLibrary && styles.buttonLocked]}
+        >
+          <Text style={styles.secondaryButtonText}>{hasLibrary ? 'Start search' : 'Choose library first'}</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Library account</Text>
+      <View style={[styles.card, !hasLibrary && styles.cardLocked]}>
+        <Text style={styles.cardTitle}>2) Connect your account</Text>
         <Text style={styles.cardBody}>{formatAccountStatus(status)}</Text>
         {identity ? (
           <Text style={styles.cardMeta}>
@@ -83,20 +84,33 @@ export function HomeScreen({
             {identity.providerTitle}
           </Text>
         ) : null}
-        <TouchableOpacity onPress={onOpenAccount} style={styles.primaryButton}>
-          <Text style={styles.primaryButtonText}>Open account</Text>
+        <TouchableOpacity
+          onPress={hasLibrary ? onOpenAccount : onPickLibrary}
+          style={[styles.secondaryButton, !hasLibrary && styles.buttonLocked]}
+        >
+          <Text style={styles.secondaryButtonText}>{hasLibrary ? 'Open account' : 'Choose library first'}</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Reminders</Text>
+      <View style={[styles.card, !hasLibrary && styles.cardLocked]}>
+        <Text style={styles.cardTitle}>3) Set reminders</Text>
         <Text style={styles.cardBody}>Manage your local reminder schedule.</Text>
         <View style={styles.buttonRow}>
-          <TouchableOpacity onPress={onOpenReminderSettings} style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>Reminder settings</Text>
+          <TouchableOpacity
+            onPress={hasLibrary ? onOpenReminderSettings : onPickLibrary}
+            style={[styles.secondaryButton, !hasLibrary && styles.buttonLocked]}
+          >
+            <Text style={styles.secondaryButtonText}>
+              {hasLibrary ? 'Reminder settings' : 'Choose library first'}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={onOpenReminderHistory} style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Scheduled reminders</Text>
+          <TouchableOpacity
+            onPress={hasLibrary ? onOpenReminderHistory : onPickLibrary}
+            style={[styles.secondaryButton, !hasLibrary && styles.buttonLocked]}
+          >
+            <Text style={styles.secondaryButtonText}>
+              {hasLibrary ? 'Scheduled reminders' : 'Choose library first'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -112,31 +126,60 @@ const createStyles = (palette: AppPalette) =>
       backgroundColor: palette.background,
     },
     title: {
-      fontSize: 26,
-      fontWeight: '600',
+      fontSize: 28,
+      fontWeight: '700',
       color: palette.text,
     },
     subtitle: {
-      marginTop: 6,
+      marginTop: 8,
       fontSize: 14,
       color: palette.textSubtle,
     },
-    card: {
-      marginTop: 24,
+    heroCard: {
+      marginTop: 20,
       padding: 18,
       borderRadius: 16,
       borderWidth: 1,
       borderColor: palette.border,
       backgroundColor: palette.surface,
     },
+    heroEyebrow: {
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      color: palette.textSubtle,
+    },
+    heroTitle: {
+      marginTop: 8,
+      fontSize: 20,
+      fontWeight: '700',
+      color: palette.text,
+    },
+    heroBody: {
+      marginTop: 8,
+      fontSize: 14,
+      color: palette.textMuted,
+    },
+    card: {
+      marginTop: 16,
+      padding: 18,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surface,
+    },
+    cardLocked: {
+      opacity: 0.95,
+    },
     cardTitle: {
       fontSize: 14,
-      fontWeight: '600',
+      fontWeight: '700',
       color: palette.text,
     },
     cardBody: {
       marginTop: 8,
-      fontSize: 16,
+      fontSize: 15,
       color: palette.textMuted,
     },
     cardMeta: {
@@ -155,15 +198,11 @@ const createStyles = (palette: AppPalette) =>
     primaryButtonText: {
       color: palette.primaryText,
       fontSize: 13,
-      fontWeight: '600',
-    },
-    buttonRow: {
-      marginTop: 16,
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 12,
+      fontWeight: '700',
     },
     secondaryButton: {
+      marginTop: 14,
+      alignSelf: 'flex-start',
       paddingVertical: 10,
       paddingHorizontal: 16,
       borderRadius: 999,
@@ -175,5 +214,15 @@ const createStyles = (palette: AppPalette) =>
       color: palette.secondaryText,
       fontSize: 13,
       fontWeight: '600',
+    },
+    buttonLocked: {
+      borderColor: palette.border,
+      backgroundColor: palette.surfaceMuted,
+    },
+    buttonRow: {
+      marginTop: 8,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
     },
   });

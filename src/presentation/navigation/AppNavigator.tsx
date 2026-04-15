@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
+import { useActiveLibrary } from '@/src/application/state/ActiveLibraryStore';
 import type { OpacBriefRecord } from '@/src/domain/models/opac';
 import { AccountScreen } from '@/src/presentation/screens/AccountScreen';
 import { HomeScreen } from '@/src/presentation/screens/HomeScreen';
@@ -22,13 +23,26 @@ type Route =
 export function AppNavigator() {
   const [route, setRoute] = useState<Route>({ name: 'Home' });
   const [previousRoute, setPreviousRoute] = useState<Route | null>(null);
+  const { activeLibrary, isLoading } = useActiveLibrary();
 
   const goToLibraryPicker = () => {
     setPreviousRoute(route);
     setRoute({ name: 'LibraryPicker' });
   };
 
+  const requireLibraryThen = (nextRoute: Route) => {
+    if (!activeLibrary && !isLoading) {
+      goToLibraryPicker();
+      return;
+    }
+    setRoute(nextRoute);
+  };
+
   const handleCloseLibraryPicker = () => {
+    if (!activeLibrary && !isLoading) {
+      setRoute({ name: 'Home' });
+      return;
+    }
     setRoute(previousRoute ?? { name: 'Home' });
   };
 
@@ -42,10 +56,10 @@ export function AppNavigator() {
         return (
           <HomeScreen
             onPickLibrary={goToLibraryPicker}
-            onOpenAccount={() => setRoute({ name: 'Account' })}
-            onStartSearch={() => setRoute({ name: 'Search' })}
-            onOpenReminderSettings={() => setRoute({ name: 'ReminderSettings' })}
-            onOpenReminderHistory={() => setRoute({ name: 'ReminderHistory' })}
+            onOpenAccount={() => requireLibraryThen({ name: 'Account' })}
+            onStartSearch={() => requireLibraryThen({ name: 'Search' })}
+            onOpenReminderSettings={() => requireLibraryThen({ name: 'ReminderSettings' })}
+            onOpenReminderHistory={() => requireLibraryThen({ name: 'ReminderHistory' })}
           />
         );
       case 'Account':
@@ -85,7 +99,7 @@ export function AppNavigator() {
       default:
         return null;
     }
-  }, [route, previousRoute]);
+  }, [route, previousRoute, activeLibrary, isLoading]);
 
   return <View style={{ flex: 1 }}>{routeView}</View>;
 }
