@@ -1,7 +1,6 @@
 import {
   ActivityIndicator,
   Linking,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Switch,
@@ -9,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useActiveLibrary } from '@/src/application/state/ActiveLibraryStore';

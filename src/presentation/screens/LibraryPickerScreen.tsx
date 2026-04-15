@@ -2,13 +2,13 @@ import React, { useMemo, useState } from 'react';
 import {
   FlatList,
   Keyboard,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { providersRegistryRepository } from '@/src/infrastructure/providers/ProvidersRegistryRepository';

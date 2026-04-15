@@ -2,7 +2,6 @@ import {
   ActivityIndicator,
   FlatList,
   Keyboard,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
@@ -10,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useMemo, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useActiveLibrary } from '@/src/application/state/ActiveLibraryStore';
 import { useRecentSearches } from '@/src/application/state/RecentSearchesStore';
