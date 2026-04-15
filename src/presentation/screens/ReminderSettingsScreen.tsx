@@ -1,5 +1,6 @@
 import { StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useMemo } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useReminderPreferences } from '@/src/application/state/ReminderPreferencesStore';
 import { useReminderState } from '@/src/application/state/ReminderStateStore';
@@ -39,7 +40,7 @@ export function ReminderSettingsScreen({ onBack, onOpenHistory }: ReminderSettin
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>Back</Text>
@@ -134,7 +135,7 @@ export function ReminderSettingsScreen({ onBack, onOpenHistory }: ReminderSettin
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -151,12 +152,16 @@ const createStyles = (palette: AppPalette) =>
       gap: 12,
     },
     backButton: {
+      minHeight: 44,
+      minWidth: 44,
       paddingVertical: 6,
       paddingHorizontal: 12,
       borderRadius: 999,
       borderWidth: 1,
       borderColor: palette.border,
       backgroundColor: palette.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     backButtonText: {
       fontSize: 12,
