@@ -308,6 +308,15 @@ export class SisisAdapter implements LibrarySystemAdapter {
   }
 
   private buildSearchUrl(baseUrl: string, query: string): string {
+    if (String(this.provider.id) === '8714') {
+      const url = new URL(`${baseUrl}/start.do`);
+      // Leipzig SISIS responds on ConQuery start endpoint (not generic search.do submit flow)
+      url.searchParams.set('sourceid', 'ConQuery');
+      url.searchParams.set('Login', 'stabi00');
+      url.searchParams.set('Query', `-1 = "${query}"`);
+      return url.toString();
+    }
+
     const url = new URL(`${baseUrl}/search.do`);
     url.searchParams.set('methodToCall', 'submit');
     url.searchParams.set('searchCategories[0]', 'all');
@@ -348,7 +357,8 @@ export class SisisAdapter implements LibrarySystemAdapter {
     const match = html.match(/href\s*=\s*["']([^"']*hitList\.do[^"']*)["']/i);
     if (!match) return null;
     try {
-      return new URL(match[1], `${baseUrl}/`).toString();
+      const decodedHref = match[1].replace(/&amp;/g, '&');
+      return new URL(decodedHref, `${baseUrl}/`).toString();
     } catch {
       return null;
     }

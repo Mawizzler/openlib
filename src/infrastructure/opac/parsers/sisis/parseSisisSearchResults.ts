@@ -43,7 +43,8 @@ const stripHtml = (value: string) => decodeHtmlEntities(value.replace(/<[^>]*>/g
 
 const resolveUrl = (baseUrl: string, href: string) => {
   try {
-    return new URL(href, `${normalizeBaseUrl(baseUrl)}/`).toString();
+    const decodedHref = href.replace(/&amp;/g, '&');
+    return new URL(decodedHref, `${normalizeBaseUrl(baseUrl)}/`).toString();
   } catch {
     return null;
   }
@@ -107,7 +108,22 @@ const extractRecordIdFromUrl = (detailUrl: string | null) => {
   if (!detailUrl) return null;
   try {
     const url = new URL(detailUrl);
-    const keys = ['identifier', 'id', 'recordId', 'docId', 'ppn', 'sysno', 'itemId', 'titleId', 'hitId'];
+    const keys = [
+      'identifier',
+      'id',
+      'recordId',
+      'docId',
+      'ppn',
+      'sysno',
+      'itemId',
+      'titleId',
+      'hitId',
+    ];
+    const identifier = url.searchParams.get('identifier');
+    const curPos = url.searchParams.get('curPos');
+    if (identifier && curPos) {
+      return `${identifier}:${curPos}`;
+    }
     for (const key of keys) {
       const value = url.searchParams.get(key);
       if (value) return value;
@@ -185,14 +201,33 @@ const parseAnchorsFallback = (html: string, baseUrl: string) => {
   const anchors = extractAnchors(html).filter((anchor) => anchor.text.length > 1);
   const results: OpacBriefRecord[] = [];
 
+  const seen = new Set<string>();
+
   for (const [index, anchor] of anchors.entries()) {
     if (!DETAIL_HREF_HINTS.some((hint) => hint.test(anchor.href))) {
       continue;
     }
+
+    if (/tab=showAvailabilityActive|memorizeHitList\.do|hitList\.do/i.test(anchor.href)) {
+      continue;
+    }
+
     const detailUrl = resolveUrl(baseUrl, anchor.href);
+    if (!detailUrl || !/singleHit\.do/i.test(detailUrl)) {
+      continue;
+    }
+
+    const title = anchor.text || `Result ${index + 1}`;
+    if (!title || /^\?\?\?/.test(title)) {
+      continue;
+    }
+
     const recordIdFromUrl = extractRecordIdFromUrl(detailUrl);
     const recordId = recordIdFromUrl ?? `hit-${index + 1}`;
-    const title = anchor.text || `Result ${index + 1}`;
+    if (seen.has(recordId)) {
+      continue;
+    }
+    seen.add(recordId);
 
     results.push({
       id: recordId,
@@ -220,8 +255,18 @@ export const parseSisisSearchResults = (html: string, baseUrl: string): ParsedSe
     });
   }
 
-  if (records.length === 0) {
-    records.push(...parseAnchorsFallback(html, baseUrl));
+  const fallbackRecords = parseAnchorsFallback(html, baseUrl);
+  const blockParseLooksNonRecordLike =
+    records.length > 0 &&
+    records.every(
+      (record) =>
+        /^Treffer\b/i.test(record.title) ||
+        record.id === 'hitList.do' ||
+        (record.detailUrl?.includes('/hitList.do') ?? false),
+    );
+
+  if (records.length === 0 || (blockParseLooksNonRecordLike && fallbackRecords.length > 0)) {
+    return { records: fallbackRecords, total };
   }
 
   return { records, total };
