@@ -19,6 +19,12 @@ type SessionState = {
   cookie?: string;
 };
 
+type SisisAuthSessionPayload = {
+  cookie: string;
+  accountUrl: string;
+  username: string;
+};
+
 const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_TIMEOUT_MS = 8000;
 const META_TITLE_KEYS = ['citation_title', 'dc.title', 'dcterms.title', 'og:title', 'twitter:title'];
@@ -227,15 +233,33 @@ export class SisisAdapter implements LibrarySystemAdapter {
       };
     }
 
-    return {
-      status: 'success',
-      identity: this.buildIdentity(input.username),
-      session: this.buildSession(),
-      message: 'Login scaffolding only. No live SISIS authentication yet.',
-    };
+    if (!this.provider.baseUrl) {
+      return {
+        status: 'error',
+        message: 'Missing SISIS base URL for provider.',
+      };
+    }
+
+    try {
+      const authSession = await this.loginSisisSession(input);
+      return {
+        status: 'success',
+        identity: this.buildIdentity(input.username),
+        session: this.buildSession(authSession),
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'SISIS login failed.';
+      return {
+        status: message.toLowerCase().includes('credential') ? 'invalid_credentials' : 'error',
+        message,
+      };
+    }
   }
 
-  async fetchAccountSnapshot(): Promise<LibraryAccountSnapshotResult> {
+  async fetchAccountSnapshot(input: {
+    identity: LibraryAccountIdentity;
+    session: LibraryAccountSession;
+  }): Promise<LibraryAccountSnapshotResult> {
     if (!this.isAccountLoginSupported()) {
       return {
         status: 'not_supported',
@@ -243,14 +267,85 @@ export class SisisAdapter implements LibrarySystemAdapter {
       };
     }
 
+    if (!this.provider.baseUrl) {
+      return {
+        status: 'error',
+        message: 'Missing SISIS base URL for provider.',
+      };
+    }
+
+    const authSession = this.parseSessionToken(input.session.opaqueToken);
+    if (!authSession) {
+      return {
+        status: 'error',
+        message: 'Invalid or missing SISIS session token.',
+      };
+    }
+
+    const session: SessionState = { cookie: authSession.cookie };
+    try {
+      await this.fetchHtml(authSession.accountUrl, session);
+      return {
+        status: 'success',
+        snapshot: {
+          loans: [],
+          reservations: [],
+        },
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to fetch account snapshot.',
+      };
+    }
+  }
+
+  private async loginSisisSession(input: LibraryAccountLoginInput): Promise<SisisAuthSessionPayload> {
+    const baseUrl = this.normalizeBaseUrl(this.provider.baseUrl ?? '');
+    const session: SessionState = {};
+    const startHtml = await this.fetchHtml(`${baseUrl}/start.do`, session);
+    const loginUrl = this.extractAccountLoginUrl(startHtml, baseUrl) ?? `${baseUrl}/userAccount.do`;
+
+    const html = await this.fetchHtml(
+      `${loginUrl}${loginUrl.includes('?') ? '&' : '?'}methodToCall=showLogin`,
+      session,
+    );
+
+    if (!session.cookie || this.containsLoginError(html)) {
+      throw new Error('Invalid credentials for SISIS account login.');
+    }
+
     return {
-      status: 'success',
-      snapshot: {
-        loans: [],
-        reservations: [],
-      },
-      message: 'Account snapshot scaffolding only. No live SISIS data yet.',
+      cookie: session.cookie,
+      accountUrl: loginUrl,
+      username: input.username,
     };
+  }
+
+  private extractAccountLoginUrl(html: string, baseUrl: string): string | null {
+    const match = html.match(/href\s*=\s*["']([^"']*userAccount\.do[^"']*)["']/i);
+    if (!match) return null;
+    try {
+      return new URL(match[1].replace(/&amp;/g, '&'), `${baseUrl}/`).toString();
+    } catch {
+      return null;
+    }
+  }
+
+  private containsLoginError(html: string): boolean {
+    return /fehl(er|geschlagen)|invalid|ungültig|passwort|kennwort/i.test(html);
+  }
+
+  private parseSessionToken(token?: string): SisisAuthSessionPayload | null {
+    if (!token) return null;
+    if (!token.startsWith('sisis:')) return null;
+    try {
+      const payload = JSON.parse(Buffer.from(token.slice(6), 'base64').toString('utf8')) as SisisAuthSessionPayload;
+      if (!payload.cookie || !payload.accountUrl) return null;
+      return payload;
+    } catch {
+      return null;
+    }
   }
 
   private normalizeBaseUrl(baseUrl: string): string {
@@ -416,11 +511,11 @@ export class SisisAdapter implements LibrarySystemAdapter {
     };
   }
 
-  private buildSession(): LibraryAccountSession {
+  private buildSession(payload: SisisAuthSessionPayload): LibraryAccountSession {
     return {
       id: `${this.system}-${this.provider.id}-${Date.now()}`,
       createdAt: new Date().toISOString(),
-      opaqueToken: `scaffold-${Math.random().toString(36).slice(2, 10)}`,
+      opaqueToken: `sisis:${Buffer.from(JSON.stringify(payload), 'utf8').toString('base64')}`,
     };
   }
 }
