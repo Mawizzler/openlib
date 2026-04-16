@@ -28,7 +28,7 @@ export const createLibrarySystemAdapter = (
     return new VuFindAdapter(provider);
   }
 
-  if (api === 'bibliotheca') {
+  if (api === 'bibliotheca' || api === 'winbiap') {
     return new BibliothecaAdapter(provider);
   }
 
