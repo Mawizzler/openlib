@@ -11,6 +11,7 @@ import { WebOpacNetAdapter } from '@/src/infrastructure/opac/adapters/WebOpacNet
 import { Biber1992Adapter } from '@/src/infrastructure/opac/adapters/Biber1992Adapter';
 import { PrimoAdapter } from '@/src/infrastructure/opac/adapters/PrimoAdapter';
 import { AdisAdapter } from '@/src/infrastructure/opac/adapters/AdisAdapter';
+import { KohaAdapter } from '@/src/infrastructure/opac/adapters/KohaAdapter';
 
 export const createLibrarySystemAdapter = (
   provider: OpacappNormalizedProvider,
@@ -55,6 +56,10 @@ export const createLibrarySystemAdapter = (
 
   if (api === 'adis') {
     return new AdisAdapter(provider);
+  }
+
+  if (api === 'koha') {
+    return new KohaAdapter(provider);
   }
 
   return new UnsupportedAdapter(provider);
