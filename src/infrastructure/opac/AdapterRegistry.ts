@@ -8,6 +8,7 @@ import { UnsupportedAdapter } from '@/src/infrastructure/opac/adapters/Unsupport
 import { LitteraAdapter } from '@/src/infrastructure/opac/adapters/LitteraAdapter';
 import { VuFindAdapter } from '@/src/infrastructure/opac/adapters/VuFindAdapter';
 import { WebOpacNetAdapter } from '@/src/infrastructure/opac/adapters/WebOpacNetAdapter';
+import { Biber1992Adapter } from '@/src/infrastructure/opac/adapters/Biber1992Adapter';
 
 export const createLibrarySystemAdapter = (
   provider: OpacappNormalizedProvider,
@@ -40,6 +41,10 @@ export const createLibrarySystemAdapter = (
 
   if (api === 'littera') {
     return new LitteraAdapter(provider);
+  }
+
+  if (api === 'biber1992') {
+    return new Biber1992Adapter(provider);
   }
 
   return new UnsupportedAdapter(provider);
