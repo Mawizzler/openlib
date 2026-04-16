@@ -1,0 +1,26 @@
+{
+  "info": {
+    "total": 42
+  },
+  "docs": [
+    {
+      "pnx": {
+        "control": {
+          "recordid": ["TN_cdi_proquest_journals_2540953012"],
+          "sourceid": ["cdi_proquest_journals"]
+        },
+        "display": {
+          "title": ["Library discovery at scale"],
+          "creator": ["Jane Doe"],
+          "publisher": ["Open Library Press"],
+          "creationdate": ["2024"],
+          "type": ["article"],
+          "language": ["eng"]
+        },
+        "links": {
+          "linktorsrc": ["https://resolver.example.org/doc/2540953012"]
+        }
+      }
+    }
+  ]
+}
