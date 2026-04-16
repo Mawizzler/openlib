@@ -1,0 +1,22 @@
+{
+  "total": 2,
+  "hits": [
+    {
+      "id": "PPN123456789",
+      "title": "Der Zauberberg",
+      "authors": ["Thomas Mann"],
+      "year": "1924",
+      "format": "Book",
+      "detailPath": "/DB=2.1/PPNSET?PPN=PPN123456789",
+      "isbn": "9783596294310"
+    },
+    {
+      "id": "PPN987654321",
+      "title": "Buddenbrooks",
+      "authors": ["Thomas Mann"],
+      "year": 1901,
+      "format": "Book",
+      "detailPath": "/DB=2.1/PPNSET?PPN=PPN987654321"
+    }
+  ]
+}

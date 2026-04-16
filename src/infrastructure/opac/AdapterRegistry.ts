@@ -3,6 +3,7 @@ import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { BibliothecaAdapter } from '@/src/infrastructure/opac/adapters/BibliothecaAdapter';
 import { SisisAdapter } from '@/src/infrastructure/opac/adapters/SisisAdapter';
 import { OpenAdapter } from '@/src/infrastructure/opac/adapters/OpenAdapter';
+import { PicaAdapter } from '@/src/infrastructure/opac/adapters/PicaAdapter';
 import { UnsupportedAdapter } from '@/src/infrastructure/opac/adapters/UnsupportedAdapter';
 import { VuFindAdapter } from '@/src/infrastructure/opac/adapters/VuFindAdapter';
 import { WebOpacNetAdapter } from '@/src/infrastructure/opac/adapters/WebOpacNetAdapter';
@@ -30,6 +31,10 @@ export const createLibrarySystemAdapter = (
 
   if (api === 'webopac.net') {
     return new WebOpacNetAdapter(provider);
+  }
+
+  if (api === 'pica') {
+    return new PicaAdapter(provider);
   }
 
   return new UnsupportedAdapter(provider);

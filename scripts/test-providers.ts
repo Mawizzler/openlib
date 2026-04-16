@@ -38,7 +38,7 @@ type ProviderStatus = {
 const timeoutMs = Number(process.env.PROVIDER_TEST_TIMEOUT_MS ?? '12000');
 const concurrency = Number(process.env.PROVIDER_TEST_CONCURRENCY ?? '4');
 const testQuery = process.env.PROVIDER_TEST_QUERY ?? 'harry potter';
-const supportedApis = new Set(['sisis', 'vufind']);
+const supportedApis = new Set(['sisis', 'vufind', 'pica']);
 const onlyProviderIds = new Set(
   (process.env.PROVIDER_TEST_ONLY_IDS ?? '')
     .split(',')
