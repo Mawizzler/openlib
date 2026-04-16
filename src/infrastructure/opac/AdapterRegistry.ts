@@ -10,6 +10,7 @@ import { VuFindAdapter } from '@/src/infrastructure/opac/adapters/VuFindAdapter'
 import { WebOpacNetAdapter } from '@/src/infrastructure/opac/adapters/WebOpacNetAdapter';
 import { Biber1992Adapter } from '@/src/infrastructure/opac/adapters/Biber1992Adapter';
 import { PrimoAdapter } from '@/src/infrastructure/opac/adapters/PrimoAdapter';
+import { AdisAdapter } from '@/src/infrastructure/opac/adapters/AdisAdapter';
 
 export const createLibrarySystemAdapter = (
   provider: OpacappNormalizedProvider,
@@ -50,6 +51,10 @@ export const createLibrarySystemAdapter = (
 
   if (api === 'primo') {
     return new PrimoAdapter(provider);
+  }
+
+  if (api === 'adis') {
+    return new AdisAdapter(provider);
   }
 
   return new UnsupportedAdapter(provider);

@@ -1,0 +1,26 @@
+{
+  "total": 3,
+  "records": [
+    {
+      "id": "A-1001",
+      "title": "Clean Architecture",
+      "author": "Robert C. Martin",
+      "year": "2017",
+      "format": "book"
+    },
+    {
+      "id": "A-1002",
+      "title": "",
+      "author": "Ignored Author",
+      "year": "n/a",
+      "format": "book"
+    },
+    {
+      "id": "A-1003",
+      "title": "Patterns of Enterprise Application Architecture",
+      "author": "Martin Fowler",
+      "year": 2002,
+      "detailUrl": "https://catalog.example.org/custom/A-1003"
+    }
+  ]
+}
