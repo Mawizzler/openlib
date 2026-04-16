@@ -5,6 +5,7 @@ import { SisisAdapter } from '@/src/infrastructure/opac/adapters/SisisAdapter';
 import { OpenAdapter } from '@/src/infrastructure/opac/adapters/OpenAdapter';
 import { UnsupportedAdapter } from '@/src/infrastructure/opac/adapters/UnsupportedAdapter';
 import { VuFindAdapter } from '@/src/infrastructure/opac/adapters/VuFindAdapter';
+import { WebOpacNetAdapter } from '@/src/infrastructure/opac/adapters/WebOpacNetAdapter';
 
 export const createLibrarySystemAdapter = (
   provider: OpacappNormalizedProvider,
@@ -25,6 +26,10 @@ export const createLibrarySystemAdapter = (
 
   if (api === 'open') {
     return new OpenAdapter(provider);
+  }
+
+  if (api === 'webopac.net') {
+    return new WebOpacNetAdapter(provider);
   }
 
   return new UnsupportedAdapter(provider);
