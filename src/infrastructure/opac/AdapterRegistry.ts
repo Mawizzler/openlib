@@ -13,6 +13,7 @@ import { PrimoAdapter } from '@/src/infrastructure/opac/adapters/PrimoAdapter';
 import { AdisAdapter } from '@/src/infrastructure/opac/adapters/AdisAdapter';
 import { KohaAdapter } from '@/src/infrastructure/opac/adapters/KohaAdapter';
 import { IopacAdapter } from '@/src/infrastructure/opac/adapters/IopacAdapter';
+import { TouchpointAdapter } from '@/src/infrastructure/opac/adapters/TouchpointAdapter';
 
 export const createLibrarySystemAdapter = (
   provider: OpacappNormalizedProvider,
@@ -65,6 +66,10 @@ export const createLibrarySystemAdapter = (
 
   if (api === 'iopac') {
     return new IopacAdapter(provider);
+  }
+
+  if (api === 'touchpoint') {
+    return new TouchpointAdapter(provider);
   }
 
   return new UnsupportedAdapter(provider);
