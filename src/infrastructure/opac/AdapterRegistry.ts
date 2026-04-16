@@ -12,6 +12,7 @@ import { Biber1992Adapter } from '@/src/infrastructure/opac/adapters/Biber1992Ad
 import { PrimoAdapter } from '@/src/infrastructure/opac/adapters/PrimoAdapter';
 import { AdisAdapter } from '@/src/infrastructure/opac/adapters/AdisAdapter';
 import { KohaAdapter } from '@/src/infrastructure/opac/adapters/KohaAdapter';
+import { IopacAdapter } from '@/src/infrastructure/opac/adapters/IopacAdapter';
 
 export const createLibrarySystemAdapter = (
   provider: OpacappNormalizedProvider,
@@ -60,6 +61,10 @@ export const createLibrarySystemAdapter = (
 
   if (api === 'koha') {
     return new KohaAdapter(provider);
+  }
+
+  if (api === 'iopac') {
+    return new IopacAdapter(provider);
   }
 
   return new UnsupportedAdapter(provider);
