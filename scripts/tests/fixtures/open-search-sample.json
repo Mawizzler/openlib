@@ -1,0 +1,20 @@
+{
+  "numFound": 2,
+  "docs": [
+    {
+      "key": "/works/OL45804W",
+      "title": "The Fellowship of the Ring",
+      "author_name": ["J. R. R. Tolkien"],
+      "first_publish_year": 1954,
+      "cover_i": 14625772,
+      "isbn": ["9780261103573", "0261103571"],
+      "type": "work"
+    },
+    {
+      "edition_key": ["OL26331930M"],
+      "title": "The Two Towers",
+      "author_name": ["J. R. R. Tolkien"],
+      "first_publish_year": 1954
+    }
+  ]
+}
