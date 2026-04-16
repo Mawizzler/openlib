@@ -9,6 +9,24 @@ const STATUS_JSON_PATH = path.join(OUTPUT_DIR, 'status.json');
 const STATUS_MD_PATH = path.join(OUTPUT_DIR, 'status.md');
 
 const REQUIRED_FIELDS = ['id', 'title', 'api', 'baseUrl'] as const;
+const API_ALIASES: Record<string, string> = {
+  winbiap: 'bibliotheca',
+  webopacnet: 'webopac.net',
+};
+
+const supportedApis = new Set<string>([
+  'sierra',
+  'koha',
+  'evergreen',
+  'spydus',
+  'alma',
+  'vsmart',
+  'bibliocommons',
+  'pika',
+  'open',
+  'bibliotheca',
+  'webopac.net',
+]);
 
 type ProviderRegistry = {
   providers?: ProviderEntry[];
@@ -38,7 +56,6 @@ type ProviderStatus = {
 const timeoutMs = Number(process.env.PROVIDER_TEST_TIMEOUT_MS ?? '12000');
 const concurrency = Number(process.env.PROVIDER_TEST_CONCURRENCY ?? '4');
 const testQuery = process.env.PROVIDER_TEST_QUERY ?? 'harry potter';
-const supportedApis = new Set(['sisis', 'vufind', 'pica']);
 const onlyProviderIds = new Set(
   (process.env.PROVIDER_TEST_ONLY_IDS ?? '')
     .split(',')
@@ -48,6 +65,15 @@ const onlyProviderIds = new Set(
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === 'string' && value.trim().length > 0;
+
+const normalizeProviderApi = (api: string | undefined): string | null => {
+  if (!isNonEmptyString(api)) {
+    return null;
+  }
+
+  const normalized = api.trim().toLowerCase();
+  return API_ALIASES[normalized] ?? normalized;
+};
 
 const validateProvider = (provider: ProviderEntry) => {
   const missing = REQUIRED_FIELDS.filter((key) => !isNonEmptyString(provider[key]));
@@ -230,9 +256,9 @@ const run = async () => {
     }
 
     const checkedAt = new Date().toISOString();
-    const api = provider.api?.toLowerCase();
+    const normalizedApi = normalizeProviderApi(provider.api);
 
-    if (!api || !supportedApis.has(api)) {
+    if (!normalizedApi || !supportedApis.has(normalizedApi)) {
       return {
         id: provider.id ?? null,
         title: provider.title ?? null,
@@ -247,7 +273,7 @@ const run = async () => {
     const normalizedProvider: OpacappNormalizedProvider = {
       id: provider.id!,
       title: provider.title!,
-      api,
+      api: normalizedApi,
       baseUrl: normalizedUrl,
       authHint: 'opac',
       location: undefined,
