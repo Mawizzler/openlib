@@ -18,7 +18,13 @@ import { TouchpointAdapter } from '@/src/infrastructure/opac/adapters/Touchpoint
 export const createLibrarySystemAdapter = (
   provider: OpacappNormalizedProvider,
 ): LibrarySystemAdapter => {
-  const api = provider.api.toLowerCase();
+  const rawApi = provider.api.toLowerCase();
+  const api =
+    rawApi === 'winbiap'
+      ? 'bibliotheca'
+      : rawApi === 'webopacnet'
+        ? 'webopac.net'
+        : rawApi;
 
   if (api === 'sisis') {
     return new SisisAdapter(provider);
@@ -28,7 +34,7 @@ export const createLibrarySystemAdapter = (
     return new VuFindAdapter(provider);
   }
 
-  if (api === 'bibliotheca' || api === 'winbiap') {
+  if (api === 'bibliotheca') {
     return new BibliothecaAdapter(provider);
   }
 
