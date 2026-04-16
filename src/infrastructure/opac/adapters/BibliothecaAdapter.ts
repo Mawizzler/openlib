@@ -11,6 +11,26 @@ import type {
   OpacSearchResult,
 } from '@/src/domain/models/opac';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
+import { parseBibliothecaSearchResults } from '@/src/infrastructure/opac/parsers/bibliotheca/parseBibliothecaSearchResults';
+
+const DEFAULT_PAGE_SIZE = 20;
+
+const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '');
+
+const buildCandidateSearchUrls = (baseUrl: string, query: string, page: number): string[] => {
+  const q = encodeURIComponent(query.trim());
+  const startHit = Math.max(1, (page - 1) * DEFAULT_PAGE_SIZE + 1);
+  const root = trimTrailingSlash(baseUrl);
+
+  return [
+    `${root}/Mediensuche/EinfacheSuche?searchhash=&top=y&detail=0&search=${q}`,
+    `${root}/Mediensuche/EinfacheSuche?search=${q}`,
+    `${root}/Mediensuche?search=${q}`,
+    `${root}/Mediensuche/Suche?search=${q}`,
+    `${root}/Mediensuche/Suchergebnis?search=${q}&startHit=${startHit}`,
+    `${root}/Mediensuche/Suchergebnis?search=${q}`,
+  ];
+};
 
 export class BibliothecaAdapter implements LibrarySystemAdapter {
   readonly system = 'bibliotheca';
@@ -21,13 +41,58 @@ export class BibliothecaAdapter implements LibrarySystemAdapter {
   }
 
   async search(input: LibrarySystemSearchInput): Promise<OpacSearchResult> {
-    console.info(
-      `[BibliothecaAdapter] Minimal adapter active for provider ${this.provider.id}. Query not implemented yet.`,
-    );
+    const query = input.query.trim();
+    const page = input.page ?? 1;
+
+    if (!query) {
+      return { total: 0, page, pageSize: DEFAULT_PAGE_SIZE, records: [] };
+    }
+
+    const baseUrl = trimTrailingSlash(this.provider.catalogUrl || this.provider.baseUrl || '');
+    if (!baseUrl) {
+      return { total: 0, page, pageSize: DEFAULT_PAGE_SIZE, records: [] };
+    }
+
+    const candidateUrls = buildCandidateSearchUrls(baseUrl, query, page);
+    let lastError: string | undefined;
+
+    for (const url of candidateUrls) {
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            Accept: 'text/html,application/xhtml+xml',
+          },
+        });
+
+        if (!response.ok) {
+          lastError = `HTTP ${response.status} for ${url}`;
+          continue;
+        }
+
+        const html = await response.text();
+        const parsed = parseBibliothecaSearchResults(html, baseUrl);
+        if (parsed.records.length === 0) continue;
+
+        return {
+          total: parsed.total ?? parsed.records.length,
+          page,
+          pageSize: DEFAULT_PAGE_SIZE,
+          records: parsed.records,
+        };
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : String(error);
+      }
+    }
+
+    if (lastError) {
+      console.info(`[BibliothecaAdapter] No successful bibliotheca search result for ${this.provider.id}: ${lastError}`);
+    }
+
     return {
       total: 0,
-      page: input.page ?? 1,
-      pageSize: 20,
+      page,
+      pageSize: DEFAULT_PAGE_SIZE,
       records: [],
     };
   }
