@@ -5,6 +5,7 @@ import { SisisAdapter } from '@/src/infrastructure/opac/adapters/SisisAdapter';
 import { OpenAdapter } from '@/src/infrastructure/opac/adapters/OpenAdapter';
 import { PicaAdapter } from '@/src/infrastructure/opac/adapters/PicaAdapter';
 import { UnsupportedAdapter } from '@/src/infrastructure/opac/adapters/UnsupportedAdapter';
+import { LitteraAdapter } from '@/src/infrastructure/opac/adapters/LitteraAdapter';
 import { VuFindAdapter } from '@/src/infrastructure/opac/adapters/VuFindAdapter';
 import { WebOpacNetAdapter } from '@/src/infrastructure/opac/adapters/WebOpacNetAdapter';
 
@@ -35,6 +36,10 @@ export const createLibrarySystemAdapter = (
 
   if (api === 'pica') {
     return new PicaAdapter(provider);
+  }
+
+  if (api === 'littera') {
+    return new LitteraAdapter(provider);
   }
 
   return new UnsupportedAdapter(provider);

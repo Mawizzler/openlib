@@ -1,0 +1,18 @@
+{
+  "total": 2,
+  "items": [
+    {
+      "id": "LT-100",
+      "title": "The Name of the Rose",
+      "author": "Umberto Eco",
+      "year": "1980",
+      "detailUrl": "https://catalog.example.org/record/LT-100"
+    },
+    {
+      "id": 200,
+      "title": "Gödel, Escher, Bach",
+      "author": "Douglas Hofstadter; Translator Example",
+      "year": "Published 1979"
+    }
+  ]
+}
