@@ -87,7 +87,7 @@ export class PrimoAdapter implements LibrarySystemAdapter {
       dum: 'true',
       indx: String(Math.max(1, page - 1) * DEFAULT_PAGE_SIZE + 1),
       bulkSize: String(DEFAULT_PAGE_SIZE),
-      vl(freeText0): query,
+      ['vl(freeText0)']: query,
     });
     return `${endpoint}?${params.toString()}`;
   }
