@@ -22,10 +22,18 @@ const buildCandidateSearchUrls = (baseUrl: string, query: string, page: number):
   const startHit = Math.max(1, (page - 1) * DEFAULT_PAGE_SIZE + 1);
   const root = trimTrailingSlash(baseUrl);
   const lowerRoot = root.toLowerCase();
+  const rootPath = (() => {
+    try {
+      return new URL(root).pathname.toLowerCase().replace(/\/+$/, '');
+    } catch {
+      return '';
+    }
+  })();
+  const hasTenantPath = Boolean(rootPath && rootPath !== '/' && rootPath !== '/webopac');
 
   const roots = [
     root,
-    ...(lowerRoot.includes('/webopac') ? [] : [`${root}/webopac`]),
+    ...(hasTenantPath || lowerRoot.includes('/webopac') ? [] : [`${root}/webopac`]),
     ...(lowerRoot.includes('/mediensuche') ? [] : [`${root}/Mediensuche`]),
   ];
 
