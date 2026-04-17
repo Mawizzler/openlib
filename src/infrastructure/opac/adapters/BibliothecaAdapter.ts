@@ -21,15 +21,36 @@ const buildCandidateSearchUrls = (baseUrl: string, query: string, page: number):
   const q = encodeURIComponent(query.trim());
   const startHit = Math.max(1, (page - 1) * DEFAULT_PAGE_SIZE + 1);
   const root = trimTrailingSlash(baseUrl);
+  const lowerRoot = root.toLowerCase();
 
-  return [
-    `${root}/Mediensuche/EinfacheSuche?searchhash=&top=y&detail=0&search=${q}`,
-    `${root}/Mediensuche/EinfacheSuche?search=${q}`,
-    `${root}/Mediensuche?search=${q}`,
-    `${root}/Mediensuche/Suche?search=${q}`,
-    `${root}/Mediensuche/Suchergebnis?search=${q}&startHit=${startHit}`,
-    `${root}/Mediensuche/Suchergebnis?search=${q}`,
+  const roots = [
+    root,
+    ...(lowerRoot.includes('/webopac') ? [] : [`${root}/webopac`]),
+    ...(lowerRoot.includes('/mediensuche') ? [] : [`${root}/Mediensuche`]),
   ];
+
+  const urls: string[] = [];
+  for (const candidateRoot of roots) {
+    const normalizedRoot = trimTrailingSlash(candidateRoot);
+    const rootHasMediensuche = normalizedRoot.toLowerCase().endsWith('/mediensuche');
+    const medienPrefix = rootHasMediensuche ? normalizedRoot : `${normalizedRoot}/Mediensuche`;
+
+    urls.push(
+      `${medienPrefix}/EinfacheSuche?searchhash=&top=y&detail=0&search=${q}`,
+      `${medienPrefix}/EinfacheSuche?search=${q}`,
+      `${medienPrefix}?search=${q}`,
+      `${medienPrefix}/Suche?search=${q}`,
+      `${medienPrefix}/Suchergebnis?search=${q}&startHit=${startHit}`,
+      `${medienPrefix}/Suchergebnis?search=${q}`,
+      `${normalizedRoot}/EinfacheSuche?searchhash=&top=y&detail=0&search=${q}`,
+      `${normalizedRoot}/EinfacheSuche?search=${q}`,
+      `${normalizedRoot}/Suche?search=${q}`,
+      `${normalizedRoot}/Suchergebnis?search=${q}&startHit=${startHit}`,
+      `${normalizedRoot}/Suchergebnis?search=${q}`,
+    );
+  }
+
+  return [...new Set(urls)];
 };
 
 export class BibliothecaAdapter implements LibrarySystemAdapter {
