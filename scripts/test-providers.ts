@@ -48,6 +48,9 @@ type ProviderStatus = {
   status: 'working' | 'partial' | 'failing';
   reason?: string;
   normalizationReasons?: string[];
+  rewrittenBaseUrl?: boolean;
+  rewriteFromHost?: string;
+  rewriteToHost?: string;
   httpStatus?: number;
   elapsedMs?: number;
   missingFields?: string[];
@@ -220,7 +223,7 @@ const run = async () => {
     const baseUrlValue = isNonEmptyString(provider.baseUrl) ? provider.baseUrl : null;
     const normalization = baseUrlValue
       ? normalizeProviderBaseUrl(baseUrlValue)
-      : { normalizedUrl: null, reasons: [] as string[] };
+      : { normalizedUrl: null, reasons: [] as string[], rewritten: false };
     const normalizedUrl = normalization.normalizedUrl;
 
     if (!validation.ok) {
@@ -245,6 +248,9 @@ const run = async () => {
         status: 'failing',
         reason: 'Invalid or unsupported base URL',
         normalizationReasons: normalization.reasons,
+        rewrittenBaseUrl: normalization.rewritten,
+        rewriteFromHost: normalization.rewriteFromHost,
+        rewriteToHost: normalization.rewriteToHost,
         checkedAt: new Date().toISOString(),
       } satisfies ProviderStatus;
     }
@@ -261,6 +267,9 @@ const run = async () => {
         status: 'partial',
         reason: `Unsupported adapter: ${provider.api ?? 'unknown'}`,
         normalizationReasons: normalization.reasons,
+        rewrittenBaseUrl: normalization.rewritten,
+        rewriteFromHost: normalization.rewriteFromHost,
+        rewriteToHost: normalization.rewriteToHost,
         checkedAt,
       } satisfies ProviderStatus;
     }
@@ -292,6 +301,9 @@ const run = async () => {
         status: 'failing',
         reason: probe.reason,
         normalizationReasons: normalization.reasons,
+        rewrittenBaseUrl: normalization.rewritten,
+        rewriteFromHost: normalization.rewriteFromHost,
+        rewriteToHost: normalization.rewriteToHost,
         elapsedMs: probe.elapsedMs,
         recordsCount: probe.recordsCount,
         checkedAt,
@@ -305,6 +317,9 @@ const run = async () => {
       baseUrl: normalizedUrl,
       status: 'working',
       normalizationReasons: normalization.reasons,
+      rewrittenBaseUrl: normalization.rewritten,
+      rewriteFromHost: normalization.rewriteFromHost,
+      rewriteToHost: normalization.rewriteToHost,
       elapsedMs: probe.elapsedMs,
       recordsCount: probe.recordsCount,
       reason: probe.reason,

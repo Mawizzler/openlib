@@ -1,6 +1,9 @@
 export type ProviderUrlNormalizationResult = {
   normalizedUrl: string | null;
   reasons: string[];
+  rewritten: boolean;
+  rewriteFromHost?: string;
+  rewriteToHost?: string;
 };
 
 const QUOTE_TRIM_PATTERN = /^["'`\s]+|["'`\s]+$/g;
@@ -44,7 +47,24 @@ export const normalizeProviderBaseUrl = (rawBaseUrl: string): ProviderUrlNormali
 
   if (!['http:', 'https:'].includes(parsed.protocol)) {
     reasons.push(`unsupported URL scheme: ${parsed.protocol}`);
-    return { normalizedUrl: null, reasons };
+    return { normalizedUrl: null, reasons, rewritten: false };
+  }
+
+  let rewritten = false;
+  let rewriteFromHost: string | undefined;
+  let rewriteToHost: string | undefined;
+
+  const host = parsed.hostname.toLowerCase();
+  if (host === 'bibliotheken.kivbf.de') {
+    rewriteFromHost = parsed.hostname;
+    parsed.hostname = 'bibliotheken.komm.one';
+    rewriteToHost = parsed.hostname;
+    rewritten = true;
+    reasons.push('rewrote deterministic redirect-family host: bibliotheken.kivbf.de -> bibliotheken.komm.one');
+  } else if (host === 'bibliothek.komm.one') {
+    reasons.push('kept canonical bibliothek.komm.one host');
+  } else if (host.includes('lmscloud') || host.includes('cms')) {
+    reasons.push('non-deterministic LMS/CMS-like host; no rewrite applied');
   }
 
   const normalizedUrl = parsed.toString();
@@ -55,5 +75,8 @@ export const normalizeProviderBaseUrl = (rawBaseUrl: string): ProviderUrlNormali
   return {
     normalizedUrl,
     reasons,
+    rewritten,
+    rewriteFromHost,
+    rewriteToHost,
   };
 };
