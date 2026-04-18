@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { SearchFlowService } from '@/src/application/services/opac/SearchFlowService';
+import { normalizeProviderBaseUrl } from './provider-url-normalization';
 
 const REGISTRY_PATH = path.join(process.cwd(), 'data', 'providers.registry.json');
 const OUTPUT_DIR = path.join(process.cwd(), 'artifacts', 'provider-status');
@@ -46,6 +47,7 @@ type ProviderStatus = {
   baseUrl: string | null;
   status: 'working' | 'partial' | 'failing';
   reason?: string;
+  normalizationReasons?: string[];
   httpStatus?: number;
   elapsedMs?: number;
   missingFields?: string[];
@@ -81,18 +83,6 @@ const validateProvider = (provider: ProviderEntry) => {
     ok: missing.length === 0,
     missing,
   };
-};
-
-const normalizeUrl = (baseUrl: string): string | null => {
-  try {
-    const url = new URL(baseUrl);
-    if (!['http:', 'https:'].includes(url.protocol)) {
-      return null;
-    }
-    return url.toString();
-  } catch {
-    return null;
-  }
 };
 
 const withTimeout = async <T>(promise: Promise<T>, timeout: number): Promise<T> => {
@@ -228,7 +218,10 @@ const run = async () => {
   const statuses: ProviderStatus[] = await mapLimit(targetProviders, concurrency, async (provider) => {
     const validation = validateProvider(provider);
     const baseUrlValue = isNonEmptyString(provider.baseUrl) ? provider.baseUrl : null;
-    const normalizedUrl = baseUrlValue ? normalizeUrl(baseUrlValue) : null;
+    const normalization = baseUrlValue
+      ? normalizeProviderBaseUrl(baseUrlValue)
+      : { normalizedUrl: null, reasons: [] as string[] };
+    const normalizedUrl = normalization.normalizedUrl;
 
     if (!validation.ok) {
       return {
@@ -250,7 +243,8 @@ const run = async () => {
         api: provider.api ?? null,
         baseUrl: baseUrlValue,
         status: 'failing',
-        reason: 'Invalid base URL',
+        reason: 'Invalid or unsupported base URL',
+        normalizationReasons: normalization.reasons,
         checkedAt: new Date().toISOString(),
       } satisfies ProviderStatus;
     }
@@ -266,6 +260,7 @@ const run = async () => {
         baseUrl: normalizedUrl,
         status: 'partial',
         reason: `Unsupported adapter: ${provider.api ?? 'unknown'}`,
+        normalizationReasons: normalization.reasons,
         checkedAt,
       } satisfies ProviderStatus;
     }
@@ -296,6 +291,7 @@ const run = async () => {
         baseUrl: normalizedUrl,
         status: 'failing',
         reason: probe.reason,
+        normalizationReasons: normalization.reasons,
         elapsedMs: probe.elapsedMs,
         recordsCount: probe.recordsCount,
         checkedAt,
@@ -308,6 +304,7 @@ const run = async () => {
       api: provider.api ?? null,
       baseUrl: normalizedUrl,
       status: 'working',
+      normalizationReasons: normalization.reasons,
       elapsedMs: probe.elapsedMs,
       recordsCount: probe.recordsCount,
       reason: probe.reason,

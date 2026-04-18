@@ -32,6 +32,7 @@ OpenLib is an Expo + TypeScript app for OPAC-driven library discovery. This repo
 - `npm run android` - Android emulator
 - `npm run build:providers` - Build OPAC provider registry from opacapp-config-files
 - `npm run test:providers` - Smoke test provider registry and write status artifacts
+- `npm run test:provider-url-normalization` - `openlib@1.0.0 test:provider-url-normalization` / `tsx scripts/tests/provider-url-normalization-check.ts`; provider-url-normalization-check: all assertions passed.
 - `npm run qa:mvp` - Run MVP smoke checks and write heartbeat artifacts
 
 ## Conventions
@@ -59,5 +60,6 @@ OpenLib is an Expo + TypeScript app for OPAC-driven library discovery. This repo
 - Local persistence (AsyncStorage) now stores active library selection, recent searches per library, reminder preferences, and minimal account session metadata (no passwords or raw credentials).
 - See `docs/architecture.md` for the current layering and dependency rules.
 - See `docs/providers-registry.md` for OPAC provider ingestion details.
+- Provider status output includes notes for URL normalization adjustments/rejections.
 - See `docs/opac-adapter-strategy.md` for SISIS/VuFind adapter strategy and TS mapping plan.
 - See `docs/ux-navigation-openlib.md` for MVP UX flow and navigation concept.
