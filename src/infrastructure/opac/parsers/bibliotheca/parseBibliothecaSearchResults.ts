@@ -92,11 +92,11 @@ export const parseBibliothecaSearchResults = (html: string, baseUrl: string): Bi
       id,
       title,
       authors: [],
-      year: undefined,
+      publishedYear: undefined,
       format: undefined,
       coverUrl: undefined,
       detailUrl,
-      availability: undefined,
+      availabilityLabel: undefined,
     });
   }
 

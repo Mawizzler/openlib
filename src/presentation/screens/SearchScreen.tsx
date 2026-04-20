@@ -1,6 +1,7 @@
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   Keyboard,
   StyleSheet,
   Text,
@@ -18,9 +19,60 @@ import { SearchFlowService } from '@/src/application/services/opac/SearchFlowSer
 import type { OpacBriefRecord, OpacSearchResult } from '@/src/domain/models/opac';
 import { useAppPalette, type AppPalette } from '@/src/presentation/theme/palette';
 
-const formatAuthors = (authors: string[]) => {
-  if (!authors.length) return 'Unknown author';
-  return authors.join(', ');
+type AvailabilityTone = 'positive' | 'negative' | 'neutral';
+
+const normalizeTitle = (title?: string) => {
+  const trimmed = title?.trim() ?? '';
+  return trimmed.length > 0 ? trimmed : 'Untitled record';
+};
+
+const formatAuthors = (authors?: string[]) => {
+  const normalized = (authors ?? []).map((author) => author.trim()).filter(Boolean);
+  if (!normalized.length) return 'Unknown author';
+  return normalized.join(', ');
+};
+
+const formatMediaLabel = (format?: string) => {
+  const trimmed = format?.trim();
+  if (!trimmed) return 'Item';
+  const normalized = trimmed.replace(/_/g, ' ');
+  return normalized[0].toUpperCase() + normalized.slice(1);
+};
+
+const formatPublicationMeta = (record: OpacBriefRecord) => {
+  const parts: string[] = [];
+  if (record.publishedYear) {
+    parts.push(`Published ${record.publishedYear}`);
+  }
+  const publisher = record.publisher?.trim();
+  if (publisher) {
+    parts.push(publisher);
+  }
+  const language = record.language?.trim();
+  if (language) {
+    parts.push(`Language: ${language}`);
+  }
+  return parts.length > 0 ? parts.join(' · ') : 'Publication details unavailable';
+};
+
+const getAvailabilityBadge = (
+  record: OpacBriefRecord,
+): { label: string; tone: AvailabilityTone } | null => {
+  const label = record.availabilityLabel?.trim();
+  if (label) return { label, tone: 'neutral' };
+
+  switch (record.availabilityStatus) {
+    case 'available':
+      return { label: 'Available', tone: 'positive' };
+    case 'checked_out':
+      return { label: 'Checked out', tone: 'negative' };
+    case 'on_hold':
+      return { label: 'On hold', tone: 'neutral' };
+    case 'in_transit':
+      return { label: 'In transit', tone: 'neutral' };
+    default:
+      return null;
+  }
 };
 
 type SearchScreenProps = {
@@ -99,19 +151,56 @@ export function SearchScreen({ onBack, onPickLibrary, onShowDetails }: SearchScr
   };
 
   const renderResult = ({ item }: { item: OpacBriefRecord }) => {
+    const title = normalizeTitle(item.title);
+    const authors = formatAuthors(item.authors);
+    const publicationMeta = formatPublicationMeta(item);
+    const mediaLabel = formatMediaLabel(item.format);
+    const availabilityBadge = getAvailabilityBadge(item);
+
     return (
       <View style={styles.resultCard}>
         <TouchableOpacity
           style={styles.resultMain}
           onPress={() => onShowDetails(item, activeLibrary?.id ?? null)}
         >
-          <Text style={styles.resultTitle}>{item.title || 'Untitled'}</Text>
-          <Text style={styles.resultMeta}>{formatAuthors(item.authors)}</Text>
-          {item.publishedYear || item.format ? (
-            <Text style={styles.resultMeta}>
-              {[item.format, item.publishedYear].filter(Boolean).join(' · ')}
-            </Text>
-          ) : null}
+          <View style={styles.coverContainer}>
+            {item.coverUrl ? (
+              <Image source={{ uri: item.coverUrl }} style={styles.coverImage} resizeMode="cover" />
+            ) : (
+              <View style={styles.coverPlaceholder}>
+                <Text style={styles.coverPlaceholderText}>No cover</Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.resultInfo}>
+            <View style={styles.badgeRow}>
+              <View style={styles.mediaBadge}>
+                <Text style={styles.mediaBadgeText}>{mediaLabel}</Text>
+              </View>
+              {availabilityBadge ? (
+                <View
+                  style={[
+                    styles.statusBadge,
+                    availabilityBadge.tone === 'positive' && styles.statusBadgePositive,
+                    availabilityBadge.tone === 'negative' && styles.statusBadgeNegative,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.statusBadgeText,
+                      availabilityBadge.tone === 'positive' && styles.statusBadgePositiveText,
+                      availabilityBadge.tone === 'negative' && styles.statusBadgeNegativeText,
+                    ]}
+                  >
+                    {availabilityBadge.label}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            <Text style={styles.resultTitle}>{title}</Text>
+            <Text style={styles.resultMeta}>{authors}</Text>
+            <Text style={styles.resultMeta}>{publicationMeta}</Text>
+          </View>
         </TouchableOpacity>
         <View style={styles.resultActions}>
           <TouchableOpacity
@@ -373,7 +462,84 @@ const createStyles = (palette: AppPalette) =>
       marginBottom: 10,
     },
     resultMain: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 12,
+    },
+    coverContainer: {
+      width: 64,
+      height: 96,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surfaceMuted,
+      overflow: 'hidden',
+    },
+    coverImage: {
+      width: '100%',
+      height: '100%',
+    },
+    coverPlaceholder: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 6,
+    },
+    coverPlaceholderText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: palette.textSubtle,
+      textAlign: 'center',
+    },
+    resultInfo: {
+      flex: 1,
       gap: 4,
+    },
+    badgeRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 6,
+      marginBottom: 2,
+    },
+    mediaBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surfaceMuted,
+    },
+    mediaBadgeText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: palette.textMuted,
+    },
+    statusBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: palette.border,
+      backgroundColor: palette.surfaceMuted,
+    },
+    statusBadgeText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: palette.textMuted,
+    },
+    statusBadgePositive: {
+      borderColor: palette.primary,
+      backgroundColor: palette.primary,
+    },
+    statusBadgePositiveText: {
+      color: palette.primaryText,
+    },
+    statusBadgeNegative: {
+      borderColor: palette.danger,
+      backgroundColor: palette.danger,
+    },
+    statusBadgeNegativeText: {
+      color: palette.dangerText,
     },
     resultActions: {
       marginTop: 10,
@@ -400,7 +566,6 @@ const createStyles = (palette: AppPalette) =>
       color: palette.text,
     },
     resultMeta: {
-      marginTop: 4,
       fontSize: 12,
       color: palette.textSubtle,
     },

@@ -49,15 +49,15 @@ export const parseWebOpacNetSearchResults = (
     if (!title) continue;
 
     const author = parseAuthor(rowHtml);
-    const year = parseYear(rowHtml);
+    const publishedYear = parseYear(rowHtml);
 
     const recordId = detailUrl ?? `webopac:${title.toLowerCase().replace(/\s+/g, '-')}`;
 
     records.push({
       id: recordId,
       title,
-      authors: author ? [author] : undefined,
-      year,
+      authors: author ? [author] : [],
+      publishedYear,
       format: 'book',
       detailUrl,
       availabilityStatus: 'unknown',

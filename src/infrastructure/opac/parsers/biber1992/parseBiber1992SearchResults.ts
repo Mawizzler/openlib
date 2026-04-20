@@ -44,15 +44,15 @@ export const parseBiber1992SearchResults = (
 
     const authorMatch = rowHtml.match(/(?:Autor|Author)\s*:\s*([^<\n\r]+)/i);
     const author = authorMatch?.[1] ? stripTags(authorMatch[1]) : undefined;
-    const year = parseYear(stripTags(rowHtml));
+    const publishedYear = parseYear(stripTags(rowHtml));
 
     const recordId = detailUrl ?? `biber1992:${title.toLowerCase().replace(/\s+/g, '-')}`;
 
     records.push({
       id: recordId,
       title,
-      authors: author ? [author] : undefined,
-      year,
+      authors: author ? [author] : [],
+      publishedYear,
       format: 'book',
       detailUrl,
       availabilityStatus: 'unknown',

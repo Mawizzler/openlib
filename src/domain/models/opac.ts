@@ -3,6 +3,13 @@ export type OpacIdentifier = {
   value: string;
 };
 
+export type OpacAvailabilityStatus =
+  | 'available'
+  | 'checked_out'
+  | 'on_hold'
+  | 'in_transit'
+  | 'unknown';
+
 export type OpacBriefRecord = {
   id: string;
   title: string;
@@ -12,13 +19,18 @@ export type OpacBriefRecord = {
   format?: string;
   identifiers?: OpacIdentifier[];
   coverUrl?: string;
+  publisher?: string;
+  language?: string;
+  source?: string;
+  availabilityStatus?: OpacAvailabilityStatus;
+  availabilityLabel?: string;
 };
 
 export type OpacHolding = {
   id: string;
   location: string;
   callNumber?: string;
-  status: 'available' | 'checked_out' | 'on_hold' | 'in_transit' | 'unknown';
+  status: OpacAvailabilityStatus;
   dueDate?: string;
 };
 

@@ -1,0 +1,97 @@
+{
+  "generatedAt": "2026-04-20T15:23:14.208Z",
+  "results": [
+    {
+      "provider": {
+        "id": "8884",
+        "title": "Bibliothek",
+        "api": "webopac.net",
+        "baseUrl": "http://www.bvsga.ch/Buetschwil"
+      },
+      "query": "harry potter",
+      "total": 0,
+      "error": null,
+      "stats": {
+        "sampled": 0,
+        "title": 0,
+        "authors": 0,
+        "coverUrl": 0,
+        "publishedYear": 0,
+        "format": 0,
+        "availabilityStatus": 0,
+        "availabilityLabel": 0
+      },
+      "sample": []
+    },
+    {
+      "provider": {
+        "id": "3297",
+        "title": "Bibliothek",
+        "api": "bibliotheca",
+        "baseUrl": "https://wwwopac.komm.one/gomaringen"
+      },
+      "query": "harry potter",
+      "total": 0,
+      "error": null,
+      "stats": {
+        "sampled": 5,
+        "title": 5,
+        "authors": 0,
+        "coverUrl": 0,
+        "publishedYear": 0,
+        "format": 0,
+        "availabilityStatus": 0,
+        "availabilityLabel": 0
+      },
+      "sample": [
+        {
+          "id": "https://wwwopac.komm.one/gomaringen/Mediensuche/Einfache-Suche?searchhash=OCLC_8ad5e0932e01c667f656b11151a43cea8c88fed3&amp;top=y&amp;sort=SortProductionYear",
+          "title": "Romane",
+          "authors": [],
+          "detailUrl": "https://wwwopac.komm.one/gomaringen/Mediensuche/Einfache-Suche?searchhash=OCLC_8ad5e0932e01c667f656b11151a43cea8c88fed3&amp;top=y&amp;sort=SortProductionYear"
+        },
+        {
+          "id": "https://wwwopac.komm.one/gomaringen/Mediensuche/Einfache-Suche?searchhash=OCLC_b31fa9e5e35c7091f935a89536c0142693d07df9&amp;module=3",
+          "title": "Jugendbücher",
+          "authors": [],
+          "detailUrl": "https://wwwopac.komm.one/gomaringen/Mediensuche/Einfache-Suche?searchhash=OCLC_b31fa9e5e35c7091f935a89536c0142693d07df9&amp;module=3"
+        }
+      ]
+    },
+    {
+      "provider": {
+        "id": "1693",
+        "title": "Bibliothek der Dr.-Hanns-Simon-Stiftung",
+        "api": "open",
+        "baseUrl": "http://bibliothek.haus-beda.de"
+      },
+      "query": "harry potter",
+      "total": 27,
+      "error": null,
+      "stats": {
+        "sampled": 10,
+        "title": 10,
+        "authors": 0,
+        "coverUrl": 0,
+        "publishedYear": 0,
+        "format": 0,
+        "availabilityStatus": 0,
+        "availabilityLabel": 0
+      },
+      "sample": [
+        {
+          "id": "https://bibliothek.haus-beda.de/login.aspx?ReturnUrl=%2fMediensuche%2fEinfacheSuche.aspx%3fsearch%3dharry%2520potter",
+          "title": "anmelden",
+          "authors": [],
+          "detailUrl": "https://bibliothek.haus-beda.de/login.aspx?ReturnUrl=%2fMediensuche%2fEinfacheSuche.aspx%3fsearch%3dharry%2520potter"
+        },
+        {
+          "id": "https://bibliothek.haus-beda.de/Mediensuche/EinfacheSuche.aspx",
+          "title": "Einfache Suche",
+          "authors": [],
+          "detailUrl": "https://bibliothek.haus-beda.de/Mediensuche/EinfacheSuche.aspx"
+        }
+      ]
+    }
+  ]
+}

@@ -35,6 +35,12 @@ const normalizeArrayValue = (value?: string[]) => {
   return candidate || undefined;
 };
 
+const toPublishedYear = (value?: string) => {
+  if (!value) return undefined;
+  const match = value.match(/\b(19\d{2}|20\d{2}|2100)\b/);
+  return match ? Number(match[1]) : undefined;
+};
+
 const toRecord = (doc: PrimoDoc, baseUrl: string): OpacBriefRecord | null => {
   const pnx = doc.pnx;
   if (!pnx) return null;
@@ -57,7 +63,7 @@ const toRecord = (doc: PrimoDoc, baseUrl: string): OpacBriefRecord | null => {
     id: recordId,
     title,
     authors: creator ? [creator] : [],
-    year,
+    publishedYear: toPublishedYear(year),
     publisher,
     format: materialType,
     language,

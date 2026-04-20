@@ -1,0 +1,118 @@
+{
+  "generatedAt": "2026-04-20T15:22:57.444Z",
+  "results": [
+    {
+      "provider": {
+        "id": "9049",
+        "title": "HTWK",
+        "api": "primo",
+        "baseUrl": "http://kapri.htwk-leipzig.de/primo_library/libweb"
+      },
+      "query": "harry potter",
+      "total": 0,
+      "error": null,
+      "stats": {
+        "sampled": 0,
+        "title": 0,
+        "authors": 0,
+        "coverUrl": 0,
+        "publishedYear": 0,
+        "format": 0,
+        "availabilityStatus": 0,
+        "availabilityLabel": 0
+      },
+      "sample": []
+    },
+    {
+      "provider": {
+        "id": "8714",
+        "title": "Städtische Bibliotheken",
+        "api": "sisis",
+        "baseUrl": "https://webopac.stadtbibliothek-leipzig.de/webOPACClient"
+      },
+      "query": "harry potter",
+      "total": 10,
+      "error": null,
+      "stats": {
+        "sampled": 10,
+        "title": 10,
+        "authors": 0,
+        "coverUrl": 0,
+        "publishedYear": 0,
+        "format": 0,
+        "availabilityStatus": 0,
+        "availabilityLabel": 0
+      },
+      "sample": [
+        {
+          "id": "-1_FT_1930486029:11",
+          "title": "Harry Potter/[4.] Harry Potter und der Feuerkelch",
+          "authors": [],
+          "detailUrl": "https://bibliothekskatalog.leipzig.de/webOPACClient/singleHit.do?methodToCall=showHit&curPos=11&identifier=-1_FT_1930486029",
+          "identifiers": [
+            {
+              "system": "local",
+              "value": "-1_FT_1930486029:11"
+            }
+          ]
+        },
+        {
+          "id": "-1_FT_1930486029:12",
+          "title": "Harry Potter/[6.] Harry Potter und der Halbblutprinz",
+          "authors": [],
+          "detailUrl": "https://bibliothekskatalog.leipzig.de/webOPACClient/singleHit.do?methodToCall=showHit&curPos=12&identifier=-1_FT_1930486029",
+          "identifiers": [
+            {
+              "system": "local",
+              "value": "-1_FT_1930486029:12"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "provider": {
+        "id": "9050",
+        "title": "Umweltbibliothek",
+        "api": "bibliotheca",
+        "baseUrl": "https://umweltbibliothek-leipzig.internetopac.de"
+      },
+      "query": "harry potter",
+      "total": 0,
+      "error": null,
+      "stats": {
+        "sampled": 0,
+        "title": 0,
+        "authors": 0,
+        "coverUrl": 0,
+        "publishedYear": 0,
+        "format": 0,
+        "availabilityStatus": 0,
+        "availabilityLabel": 0
+      },
+      "sample": []
+    },
+    {
+      "provider": {
+        "id": "9051",
+        "title": "Unibibliothek",
+        "api": "vufind",
+        "baseUrl": "https://katalog.ub.uni-leipzig.de"
+      },
+      "query": "harry potter",
+      "total": 0,
+      "error": null,
+      "stats": {
+        "sampled": 0,
+        "title": 0,
+        "authors": 0,
+        "coverUrl": 0,
+        "publishedYear": 0,
+        "format": 0,
+        "availabilityStatus": 0,
+        "availabilityLabel": 0
+      },
+      "sample": []
+    }
+  ]
+}
