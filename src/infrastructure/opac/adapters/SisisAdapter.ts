@@ -115,12 +115,103 @@ const extractTitleTag = (html: string) => {
   return title || undefined;
 };
 
+const extractHeadingTitle = (html: string) => {
+  const h2Match = html.match(/<h2[^>]*>([\s\S]*?)<\/h2>/i);
+  if (h2Match) {
+    const title = stripHtml(h2Match[1]);
+    if (title) return title;
+  }
+  const h1Match = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+  if (!h1Match) return undefined;
+  const title = stripHtml(h1Match[1]);
+  if (!title || /^lokaler\s+bestand/i.test(title)) return undefined;
+  return title;
+};
+
 const extractYear = (value?: string) => {
   if (!value) return undefined;
   const match = value.match(/\b(1[5-9]\d{2}|20\d{2})\b/);
   if (!match) return undefined;
   const year = Number.parseInt(match[1], 10);
   return Number.isNaN(year) ? undefined : year;
+};
+
+const normalizeIsbn = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const cleaned = trimmed.replace(/^[^\dXx]+|[^\dXx]+$/g, '').replace(/\s+/g, '');
+  const digitsOnly = cleaned.replace(/[^0-9Xx]/g, '').toUpperCase();
+  if (!(digitsOnly.length === 10 || digitsOnly.length === 13)) {
+    return null;
+  }
+  return cleaned;
+};
+
+const extractIsbns = (html: string) => {
+  const results = new Set<string>();
+  const urlRegex = /isbns?=([^&"'\\s>]+)/gi;
+  let urlMatch: RegExpExecArray | null = null;
+
+  while ((urlMatch = urlRegex.exec(html)) !== null) {
+    try {
+      const decoded = decodeURIComponent(urlMatch[1]);
+      decoded
+        .replace(/[\[\]]/g, '')
+        .split(/[,\s]+/)
+        .map((entry) => normalizeIsbn(entry))
+        .filter((entry): entry is string => Boolean(entry))
+        .forEach((entry) => results.add(entry));
+    } catch {
+      // Ignore malformed encodings.
+    }
+  }
+
+  const text = stripHtml(html);
+  const textRegex = /ISBN[^0-9Xx]{0,6}([0-9Xx][0-9Xx\\-\\s]{8,16}[0-9Xx])/gi;
+  let textMatch: RegExpExecArray | null = null;
+  while ((textMatch = textRegex.exec(text)) !== null) {
+    const normalized = normalizeIsbn(textMatch[1]);
+    if (normalized) results.add(normalized);
+  }
+
+  return Array.from(results);
+};
+
+const extractAvailabilityLabel = (html: string) => {
+  const linkMatch = html.match(/availability\.do[^>]*>([\s\S]*?)<\/a>/i);
+  if (linkMatch) {
+    const cleanedLink = linkMatch[1].replace(/<span[^>]*>[\s\S]*?<\/span>/gi, '');
+    const label = stripHtml(cleanedLink).replace(/\?{3}[^?]+\?{3}/g, '').trim();
+    if (label) return label;
+  }
+
+  const spanMatch = html.match(
+    /<span[^>]*class=["'][^"']*(?:textgruen|textrot|textgelb|textorange|textblue)[^"']*["'][^>]*>([\s\S]*?)<\/span>/i,
+  );
+  if (spanMatch) {
+    const label = stripHtml(spanMatch[1]).replace(/\?{3}[^?]+\?{3}/g, '').trim();
+    if (label) return label;
+  }
+
+  const statusMatch = html.match(
+    /(verf(?:ü|ue)gbar|ausleihbar|entliehen[^<]*|ausgeliehen[^<]*|nicht\s+verf(?:ü|ue)gbar[^<]*|bestellt[^<]*|vormerk[^<]*)/i,
+  );
+  if (statusMatch) {
+    const label = stripHtml(statusMatch[0]).replace(/\?{3}[^?]+\?{3}/g, '').trim();
+    if (label) return label;
+  }
+
+  return undefined;
+};
+
+const extractAvailabilityStatus = (label?: string) => {
+  if (!label) return undefined;
+  const normalized = label.toLowerCase();
+  if (/ausleihbar|verf(?:ü|ue)gbar|available/.test(normalized)) return 'available';
+  if (/entliehen|ausgeliehen|nicht\s+verf(?:ü|ue)gbar|checked\s*out/.test(normalized)) return 'checked_out';
+  if (/vormerk|reserv|hold|bestellt/.test(normalized)) return 'on_hold';
+  if (/in\s+bearbeitung|unterwegs|in\s+transit/.test(normalized)) return 'in_transit';
+  return 'unknown';
 };
 
 const resolveUrl = (baseUrl: string, href: string) => {
@@ -134,6 +225,7 @@ const resolveUrl = (baseUrl: string, href: string) => {
 export class SisisAdapter implements LibrarySystemAdapter {
   readonly system = 'sisis';
   private provider: OpacappNormalizedProvider;
+  private lastSession?: { cookie?: string; baseUrl: string; createdAt: number };
 
   constructor(provider: OpacappNormalizedProvider) {
     this.provider = provider;
@@ -171,6 +263,7 @@ export class SisisAdapter implements LibrarySystemAdapter {
       });
 
       const parsed = parseSisisSearchResults(resultsHtml, baseUrl);
+      this.lastSession = { cookie: session.cookie, baseUrl, createdAt: Date.now() };
 
       return {
         total: parsed.total ?? parsed.records.length,
@@ -197,11 +290,25 @@ export class SisisAdapter implements LibrarySystemAdapter {
 
     const session: SessionState = {};
     try {
-      if (this.provider.baseUrl) {
-        const baseUrl = this.normalizeBaseUrl(this.provider.baseUrl);
+      const baseUrl = this.provider.baseUrl ? this.normalizeBaseUrl(this.provider.baseUrl) : undefined;
+      const now = Date.now();
+      if (
+        baseUrl &&
+        this.lastSession?.baseUrl === baseUrl &&
+        this.lastSession.cookie &&
+        now - this.lastSession.createdAt < 5 * 60 * 1000
+      ) {
+        session.cookie = this.lastSession.cookie;
+      } else if (baseUrl) {
         await this.fetchHtml(`${baseUrl}/start.do`, session);
       }
-      const html = await this.fetchHtml(detailUrl, session);
+
+      let html = await this.fetchHtml(detailUrl, session);
+      if (baseUrl && this.isSessionInvalid(html)) {
+        const retrySession: SessionState = {};
+        await this.fetchHtml(`${baseUrl}/start.do`, retrySession);
+        html = await this.fetchHtml(detailUrl, retrySession);
+      }
       return this.parseDetailHtml(html, detailUrl, input.recordId);
     } catch (error) {
       console.warn('[SisisAdapter] details failed', error);
@@ -367,6 +474,10 @@ export class SisisAdapter implements LibrarySystemAdapter {
     return trimmed;
   }
 
+  private isSessionInvalid(html: string): boolean {
+    return /sitzung[^<]*g[üu]ltig|session[^<]*invalid/i.test(html);
+  }
+
   private resolveDetailUrl(input: { recordId: string; detailUrl?: string }): string | null {
     if (input.detailUrl) return input.detailUrl;
     if (input.recordId.startsWith('http://') || input.recordId.startsWith('https://')) {
@@ -376,7 +487,10 @@ export class SisisAdapter implements LibrarySystemAdapter {
   }
 
   private parseDetailHtml(html: string, detailUrl: string, recordId: string): OpacRecord | null {
-    const title = extractFirstMeta(html, META_TITLE_KEYS) ?? extractTitleTag(html);
+    const title =
+      extractFirstMeta(html, META_TITLE_KEYS) ??
+      extractHeadingTitle(html) ??
+      extractTitleTag(html);
     const authors = extractAllMeta(html, META_AUTHOR_KEYS);
     const description = extractFirstMeta(html, META_DESCRIPTION_KEYS);
     const publisher = extractFirstMeta(html, META_PUBLISHER_KEYS);
@@ -384,6 +498,9 @@ export class SisisAdapter implements LibrarySystemAdapter {
     const publishedYear = extractYear(extractFirstMeta(html, META_DATE_KEYS));
     const coverCandidate = extractFirstMeta(html, META_COVER_KEYS);
     const coverUrl = coverCandidate ? resolveUrl(detailUrl, coverCandidate) : undefined;
+    const availabilityLabel = extractAvailabilityLabel(html);
+    const availabilityStatus = extractAvailabilityStatus(availabilityLabel);
+    const isbns = extractIsbns(html);
 
     if (!title) {
       return null;
@@ -399,6 +516,9 @@ export class SisisAdapter implements LibrarySystemAdapter {
       language,
       publishedYear,
       coverUrl,
+      availabilityLabel,
+      availabilityStatus,
+      identifiers: isbns.length > 0 ? isbns.map((value) => ({ system: 'isbn', value })) : undefined,
     };
   }
 

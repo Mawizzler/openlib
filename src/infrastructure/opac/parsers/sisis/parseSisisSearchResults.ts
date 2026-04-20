@@ -84,6 +84,24 @@ const extractBlocks = (html: string) => {
   return blocks;
 };
 
+const extractRowBlocks = (html: string) => {
+  const marker = '<div class="row border-bottom';
+  const blocks: string[] = [];
+  let index = html.indexOf(marker);
+  if (index === -1) return blocks;
+  const indices: number[] = [];
+  while (index !== -1) {
+    indices.push(index);
+    index = html.indexOf(marker, index + marker.length);
+  }
+  for (let i = 0; i < indices.length; i += 1) {
+    const start = indices[i];
+    const end = indices[i + 1] ?? html.length;
+    blocks.push(html.slice(start, end));
+  }
+  return blocks;
+};
+
 const extractTotal = (html: string): number | undefined => {
   const patterns = [
     /(?:Treffer|Hits|Results|Resultate|Ergebnisse)[^0-9]{0,10}([0-9]{1,7})/i,
@@ -154,7 +172,7 @@ const extractAuthors = (block: string) => {
 
 const extractTitle = (block: string, fallback: string) => {
   const patterns = [
-    /class=["'][^"']*(?:title|titel)[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/i,
+    /class=["'][^"']*(?:title|titel|recordtitle)[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/i,
     /<h\d[^>]*>([\s\S]*?)<\/h\d>/i,
   ];
 
@@ -169,6 +187,77 @@ const extractTitle = (block: string, fallback: string) => {
   }
 
   return fallback;
+};
+
+const extractAvailabilityLabel = (block: string) => {
+  const spanMatch = block.match(
+    /<span[^>]*class=["'][^"']*(?:textgruen|textrot|textgelb|textorange|textblue)[^"']*["'][^>]*>([\s\S]*?)<\/span>/i,
+  );
+  if (spanMatch) {
+    const label = stripHtml(spanMatch[1]).replace(/\?{3}[^?]+\?{3}/g, '').trim();
+    if (label) return label;
+  }
+
+  const statusMatch = block.match(
+    /(verf(?:ü|ue)gbar|ausleihbar|entliehen[^<]*|ausgeliehen[^<]*|nicht\s+verf(?:ü|ue)gbar[^<]*|bestellt[^<]*|vormerk[^<]*)/i,
+  );
+  if (statusMatch) {
+    const label = stripHtml(statusMatch[0]).replace(/\?{3}[^?]+\?{3}/g, '').trim();
+    if (label) return label;
+  }
+
+  return undefined;
+};
+
+const extractAvailabilityStatus = (label?: string) => {
+  if (!label) return undefined;
+  const normalized = label.toLowerCase();
+  if (/ausleihbar|verf(?:ü|ue)gbar|available/.test(normalized)) return 'available';
+  if (/entliehen|ausgeliehen|nicht\s+verf(?:ü|ue)gbar|checked\s*out/.test(normalized)) return 'checked_out';
+  if (/vormerk|reserv|hold|bestellt/.test(normalized)) return 'on_hold';
+  if (/in\s+bearbeitung|unterwegs|in\s+transit/.test(normalized)) return 'in_transit';
+  return 'unknown';
+};
+
+const normalizeIsbn = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const cleaned = trimmed.replace(/^[^\dXx]+|[^\dXx]+$/g, '').replace(/\s+/g, '');
+  const digitsOnly = cleaned.replace(/[^0-9Xx]/g, '').toUpperCase();
+  if (!(digitsOnly.length === 10 || digitsOnly.length === 13)) {
+    return null;
+  }
+  return cleaned;
+};
+
+const extractIsbns = (block: string) => {
+  const results = new Set<string>();
+
+  const urlRegex = /isbns?=([^&"'\\s>]+)/gi;
+  let urlMatch: RegExpExecArray | null = null;
+  while ((urlMatch = urlRegex.exec(block)) !== null) {
+    try {
+      const decoded = decodeURIComponent(urlMatch[1]);
+      decoded
+        .replace(/[\[\]]/g, '')
+        .split(/[,\s]+/)
+        .map((entry) => normalizeIsbn(entry))
+        .filter((entry): entry is string => Boolean(entry))
+        .forEach((entry) => results.add(entry));
+    } catch {
+      // Ignore malformed encodings.
+    }
+  }
+
+  const text = stripHtml(block);
+  const textRegex = /ISBN[^0-9Xx]{0,6}([0-9Xx][0-9Xx\\-\\s]{8,16}[0-9Xx])/gi;
+  let textMatch: RegExpExecArray | null = null;
+  while ((textMatch = textRegex.exec(text)) !== null) {
+    const normalized = normalizeIsbn(textMatch[1]);
+    if (normalized) results.add(normalized);
+  }
+
+  return Array.from(results);
 };
 
 const chooseDetailAnchor = (anchors: { href: string; text: string }[]) => {
@@ -187,13 +276,22 @@ const parseBlock = (block: string, baseUrl: string, index: number): OpacBriefRec
   const recordId = recordIdFromUrl ?? `hit-${index + 1}`;
   const title = extractTitle(block, chosen.text || `Result ${index + 1}`);
   const authors = extractAuthors(block);
+  const availabilityLabel = extractAvailabilityLabel(block);
+  const availabilityStatus = extractAvailabilityStatus(availabilityLabel);
+  const isbns = extractIsbns(block);
+  const identifiers = [
+    ...(recordIdFromUrl ? [{ system: 'local' as const, value: recordIdFromUrl }] : []),
+    ...isbns.map((value) => ({ system: 'isbn' as const, value })),
+  ];
 
   return {
     id: recordId,
     title,
     authors,
     detailUrl: detailUrl ?? undefined,
-    identifiers: recordIdFromUrl ? [{ system: 'local', value: recordIdFromUrl }] : undefined,
+    identifiers: identifiers.length > 0 ? identifiers : undefined,
+    availabilityLabel,
+    availabilityStatus,
   };
 };
 
@@ -243,7 +341,8 @@ const parseAnchorsFallback = (html: string, baseUrl: string) => {
 
 export const parseSisisSearchResults = (html: string, baseUrl: string): ParsedSearchResults => {
   const total = extractTotal(html);
-  const blocks = extractBlocks(html);
+  const rowBlocks = extractRowBlocks(html);
+  const blocks = rowBlocks.length > 0 ? rowBlocks : extractBlocks(html);
   const records: OpacBriefRecord[] = [];
 
   if (blocks.length > 0) {
