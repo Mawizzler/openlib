@@ -1,5 +1,6 @@
 import type { OpacAvailability, OpacBriefRecord, OpacIdentifier, OpacRecord } from '@/src/domain/models/opac';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
+import { googleBooksEnrichment } from '@/src/infrastructure/enrichment/GoogleBooksEnrichment';
 import { createLibrarySystemAdapter } from '@/src/infrastructure/opac/AdapterRegistry';
 
 const findLegacyDetailUrl = (identifiers?: OpacIdentifier[]) => {
@@ -70,8 +71,17 @@ export class RecordDetailsFlowService {
       throw new Error('Details are not available for this record yet.');
     }
 
+    let mergedRecord = mergeRecord(record, details, detailUrl);
+
+    try {
+      const enrichment = googleBooksEnrichment();
+      mergedRecord = await enrichment.enrichRecord(mergedRecord);
+    } catch (error) {
+      console.warn('[RecordDetailsFlowService] Google Books enrichment failed', error);
+    }
+
     return {
-      record: mergeRecord(record, details, detailUrl),
+      record: mergedRecord,
       availability,
     };
   }
