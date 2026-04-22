@@ -48,26 +48,56 @@ const run = async () => {
 
   const originalFetch = global.fetch;
   const calls: string[] = [];
-  global.fetch = (async (input: RequestInfo | URL) => {
+  global.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     calls.push(url);
+    const method = init?.method ?? 'GET';
 
     if (url.endsWith('/start.do')) {
       return new MockResponse({
         url,
         body: '<a href="/webOPACClient/userAccount.do">Konto</a>',
+        setCookie: 'JSESSIONID=abc123; Path=/; HttpOnly',
       }) as any;
     }
 
     if (url.includes('/userAccount.do') && url.includes('methodToCall=showLogin')) {
       return new MockResponse({
         url,
-        body: '<html><body>login ok</body></html>',
-        setCookie: 'JSESSIONID=abc123; Path=/; HttpOnly',
+        body: `
+          <form name="LoginBean" method="post" action="/webOPACClient/login.do">
+            <input type="hidden" name="methodToCall" value="submit">
+            <input type="hidden" name="CSId" value="abc123">
+            <input type="text" name="username" />
+            <input type="password" name="password" />
+          </form>
+        `,
       }) as any;
     }
 
-    if (url.includes('/userAccount.do') && !url.includes('methodToCall=showLogin')) {
+    if (url.includes('/userAccount.do') && url.includes('methodToCall=show')) {
+      return new MockResponse({
+        url,
+        body: `
+          <form name="LoginBean" method="post" action="/webOPACClient/login.do">
+            <input type="hidden" name="methodToCall" value="submit">
+            <input type="hidden" name="CSId" value="abc123">
+            <input type="text" name="username" />
+            <input type="password" name="password" />
+          </form>
+        `,
+      }) as any;
+    }
+
+    if (url.includes('/login.do') && method === 'POST') {
+      return new MockResponse({
+        url,
+        body: '<html><body>Account overview</body></html>',
+        setCookie: 'JSESSIONID=def456; Path=/; HttpOnly',
+      }) as any;
+    }
+
+    if (url.includes('/userAccount.do')) {
       return new MockResponse({
         url,
         body: '<html><body>snapshot page</body></html>',
