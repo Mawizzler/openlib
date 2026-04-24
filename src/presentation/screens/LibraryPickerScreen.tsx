@@ -1,80 +1,54 @@
-import React, { useMemo, useState } from 'react';
-import {
-  FlatList,
-  Keyboard,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useMemo, useState } from 'react';
+import { FlatList, Keyboard, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { useActiveLibrary } from '@/src/application/state/ActiveLibraryStore';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { providersRegistryRepository } from '@/src/infrastructure/providers/ProvidersRegistryRepository';
-import { useActiveLibrary } from '@/src/application/state/ActiveLibraryStore';
+import {
+  Badge,
+  Card,
+  Input,
+  ScreenHeader,
+  ScreenLayout,
+} from '@/src/presentation/components/ScreenChrome';
 import { useAppPalette, type AppPalette } from '@/src/presentation/theme/palette';
 
 type LibraryPickerScreenProps = {
   onClose: () => void;
 };
 
-const formatLocation = (provider: OpacappNormalizedProvider) => {
-  const location = provider.location;
-  if (!location) return '';
-
-  return [location.city, location.state, location.country]
-    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
-    .join(', ');
-};
-
 const normalizeQuery = (value: string) => value.trim().toLowerCase();
 
-const scoreProvider = (provider: OpacappNormalizedProvider, query: string) => {
-  if (!query) return 0;
-
-  const title = provider.title.toLowerCase();
-  const id = provider.id.toLowerCase();
-  const api = provider.api.toLowerCase();
-  const location = formatLocation(provider).toLowerCase();
-
-  if (title === query) return 100;
-  if (id === query) return 95;
-  if (title.startsWith(query)) return 85;
-  if (id.startsWith(query)) return 80;
-  if (location.startsWith(query)) return 70;
-  if (title.includes(query)) return 60;
-  if (location.includes(query)) return 55;
-  if (api.includes(query)) return 45;
-  if (id.includes(query)) return 40;
-
-  return -1;
+const formatLocation = (provider: OpacappNormalizedProvider) => {
+  const parts = [provider.city, provider.state, provider.country].filter(Boolean);
+  return parts.join(', ');
 };
 
 const filterAndSortProviders = (providers: OpacappNormalizedProvider[], query: string) => {
-  const normalized = normalizeQuery(query);
-  if (!normalized) return providers;
+  const normalizedQuery = normalizeQuery(query);
+  if (!normalizedQuery) {
+    return [...providers].sort((left, right) => left.title.localeCompare(right.title));
+  }
 
   return providers
-    .map((provider) => ({ provider, score: scoreProvider(provider, normalized) }))
-    .filter((entry) => entry.score >= 0)
-    .sort((a, b) => {
-      if (a.score !== b.score) return b.score - a.score;
-      return a.provider.title.localeCompare(b.provider.title);
+    .filter((provider) => {
+      const haystack = [provider.id, provider.title, provider.city, provider.state, provider.country]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(normalizedQuery);
     })
-    .map((entry) => entry.provider);
+    .sort((left, right) => left.title.localeCompare(right.title));
 };
 
 const getHealthLabel = (provider: OpacappNormalizedProvider, isActive: boolean) => {
-  if (isActive) {
-    return 'Active';
-  }
+  if (isActive) return 'Active';
 
   switch (provider.healthStatus) {
     case 'green':
       return 'Healthy';
     case 'red':
-      return 'Failing';
+      return 'Down';
     case 'unsupported':
       return 'Unsupported';
     default:
@@ -82,20 +56,18 @@ const getHealthLabel = (provider: OpacappNormalizedProvider, isActive: boolean) 
   }
 };
 
-const getHealthBadgeStyle = (provider: OpacappNormalizedProvider, isActive: boolean) => {
-  if (isActive) {
-    return 'active';
-  }
+const getHealthBadgeTone = (provider: OpacappNormalizedProvider, isActive: boolean) => {
+  if (isActive) return 'primary' as const;
 
   switch (provider.healthStatus) {
     case 'green':
-      return 'healthy';
+      return 'success' as const;
     case 'red':
-      return 'down';
+      return 'danger' as const;
     case 'unsupported':
-      return 'degraded';
+      return 'warning' as const;
     default:
-      return 'unknown';
+      return 'neutral' as const;
   }
 };
 
@@ -125,66 +97,43 @@ export function LibraryPickerScreen({ onClose }: LibraryPickerScreenProps) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onClose} style={styles.backButton}>
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Choose your library</Text>
-      </View>
-
-      <TextInput
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search by name, city, or ID"
-        placeholderTextColor={palette.inputPlaceholder}
-        style={styles.searchInput}
-        returnKeyType="search"
-        onSubmitEditing={handleSubmit}
+    <ScreenLayout scrollable contentStyle={styles.content}>
+      <ScreenHeader
+        title="Choose your library"
+        subtitle="Search by name, city, or provider ID."
+        onBack={onClose}
       />
+
+      <Card>
+        <Input
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search by name, city, or ID"
+          returnKeyType="search"
+          onSubmitEditing={handleSubmit}
+        />
+      </Card>
 
       <FlatList
         data={filteredProviders}
         keyExtractor={(item) => item.id}
         keyboardShouldPersistTaps="handled"
+        scrollEnabled={false}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => {
           const isActive = item.id === activeLibraryId;
-          const healthBadge = getHealthBadgeStyle(item, isActive);
           return (
             <TouchableOpacity onPress={() => handleSelect(item)} style={styles.row}>
               <View style={styles.rowContent}>
                 <Text style={styles.rowTitle}>{item.title}</Text>
                 <Text style={styles.rowMeta}>{formatLocation(item) || item.api}</Text>
               </View>
-              <View
-                style={[
-                  styles.badge,
-                  healthBadge === 'active' && styles.badgeActive,
-                  healthBadge === 'healthy' && styles.badgeHealthy,
-                  healthBadge === 'degraded' && styles.badgeDegraded,
-                  healthBadge === 'down' && styles.badgeDown,
-                  healthBadge === 'unknown' && styles.badgeUnknown,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.badgeText,
-                    healthBadge === 'active' && styles.badgeTextActive,
-                    healthBadge === 'healthy' && styles.badgeTextHealthy,
-                    healthBadge === 'degraded' && styles.badgeTextDegraded,
-                    healthBadge === 'down' && styles.badgeTextDown,
-                    healthBadge === 'unknown' && styles.badgeTextUnknown,
-                  ]}
-                >
-                  {getHealthLabel(item, isActive)}
-                </Text>
-              </View>
+              <Badge label={getHealthLabel(item, isActive)} tone={getHealthBadgeTone(item, isActive)} />
             </TouchableOpacity>
           );
         }}
         ListEmptyComponent={
-          <View style={styles.emptyState}>
+          <Card style={styles.emptyState}>
             <Text style={styles.emptyTitle}>
               {normalizeQuery(query) ? 'No matching libraries' : 'No libraries available'}
             </Text>
@@ -193,62 +142,20 @@ export function LibraryPickerScreen({ onClose }: LibraryPickerScreenProps) {
                 ? 'Try a different name, city, or library ID.'
                 : 'Check back later or adjust your filters.'}
             </Text>
-          </View>
+          </Card>
         }
       />
-    </SafeAreaView>
+    </ScreenLayout>
   );
 }
 
 const createStyles = (palette: AppPalette) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      paddingHorizontal: 20,
-      paddingTop: 16,
-      backgroundColor: palette.background,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      marginBottom: 16,
-    },
-    backButton: {
-      minWidth: 44,
-      minHeight: 44,
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.surface,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    backButtonText: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: palette.text,
-    },
-    title: {
-      fontSize: 20,
-      fontWeight: '600',
-      color: palette.text,
-    },
-    searchInput: {
-      borderWidth: 1,
-      borderColor: palette.inputBorder,
-      borderRadius: 12,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      fontSize: 14,
-      marginBottom: 12,
-      backgroundColor: palette.inputBackground,
-      color: palette.inputText,
+    content: {
+      paddingBottom: 24,
     },
     listContent: {
-      paddingBottom: 24,
+      gap: 10,
     },
     row: {
       flexDirection: 'row',
@@ -260,7 +167,6 @@ const createStyles = (palette: AppPalette) =>
       borderWidth: 1,
       borderColor: palette.border,
       backgroundColor: palette.surface,
-      marginBottom: 10,
     },
     rowContent: {
       flex: 1,
@@ -276,54 +182,10 @@ const createStyles = (palette: AppPalette) =>
       fontSize: 12,
       color: palette.textSubtle,
     },
-    badge: {
-      paddingVertical: 6,
-      paddingHorizontal: 12,
-      borderRadius: 999,
-      borderWidth: 1,
-    },
-    badgeActive: {
-      backgroundColor: palette.primary,
-      borderColor: palette.primary,
-    },
-    badgeHealthy: {
-      backgroundColor: '#e7f8ef',
-      borderColor: '#5abf88',
-    },
-    badgeDegraded: {
-      backgroundColor: '#fff6e8',
-      borderColor: '#e1a23a',
-    },
-    badgeDown: {
-      backgroundColor: '#ffecec',
-      borderColor: '#d66767',
-    },
-    badgeUnknown: {
-      backgroundColor: palette.surfaceMuted,
-      borderColor: palette.border,
-    },
-    badgeText: {
-      fontSize: 11,
-      fontWeight: '600',
-    },
-    badgeTextActive: {
-      color: palette.primaryText,
-    },
-    badgeTextHealthy: {
-      color: '#1f7a4d',
-    },
-    badgeTextDegraded: {
-      color: '#a06a16',
-    },
-    badgeTextDown: {
-      color: '#b32626',
-    },
-    badgeTextUnknown: {
-      color: palette.text,
-    },
     emptyState: {
-      paddingVertical: 40,
+      marginTop: 0,
       alignItems: 'center',
+      paddingVertical: 40,
     },
     emptyTitle: {
       fontSize: 16,

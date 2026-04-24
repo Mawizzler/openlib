@@ -1,21 +1,21 @@
-import {
-  ActivityIndicator,
-  Linking,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Linking, StyleSheet, Switch, Text, View } from 'react-native';
 
+import { RecordDetailsFlowService } from '@/src/application/services/opac/RecordDetailsFlowService';
 import { useActiveLibrary } from '@/src/application/state/ActiveLibraryStore';
 import { useReminderState } from '@/src/application/state/ReminderStateStore';
-import { RecordDetailsFlowService } from '@/src/application/services/opac/RecordDetailsFlowService';
 import type { OpacAvailability, OpacBriefRecord, OpacIdentifier, OpacRecord } from '@/src/domain/models/opac';
 import { providersRegistryRepository } from '@/src/infrastructure/providers/ProvidersRegistryRepository';
+import {
+  Badge,
+  Button,
+  Inline,
+  ScreenHeader,
+  ScreenLayout,
+  SectionCard,
+  StateNotice,
+  Stack,
+} from '@/src/presentation/components/ScreenChrome';
 import { useAppPalette, type AppPalette } from '@/src/presentation/theme/palette';
 
 type RecordDetailsScreenProps = {
@@ -52,6 +52,9 @@ const formatTimestamp = (value: string) => {
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleString();
 };
+
+const formatIdentifier = (identifier: OpacIdentifier) =>
+  `${identifier.system.toUpperCase()}: ${identifier.value}`;
 
 export function RecordDetailsScreen({ record, libraryId, onBack }: RecordDetailsScreenProps) {
   const { activeLibrary, isLoading: isLibraryLoading } = useActiveLibrary();
@@ -112,241 +115,115 @@ export function RecordDetailsScreen({ record, libraryId, onBack }: RecordDetails
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Record</Text>
-      </View>
+    <ScreenLayout scrollable contentStyle={styles.content}>
+      <ScreenHeader
+        title="Record"
+        subtitle={provider?.title ?? 'Record details'}
+        onBack={onBack}
+      />
 
       {status === 'loading' ? (
-        <View style={styles.loadingRow}>
+        <Inline style={styles.loadingRow}>
           <ActivityIndicator size="small" color={palette.primary} />
           <Text style={styles.loadingText}>
             Loading full details{provider?.title ? ` from ${provider.title}` : ''}…
           </Text>
-        </View>
+        </Inline>
       ) : null}
 
       {status === 'error' ? (
-        <View style={styles.stateCard}>
-          <Text style={styles.stateTitle}>Details unavailable</Text>
-          <Text style={styles.stateBody}>{error ?? 'Unable to load details.'}</Text>
-          <TouchableOpacity onPress={fetchDetails} style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
+        <SectionCard title="Details unavailable">
+          <StateNotice message={error ?? 'Unable to load details.'} tone="error" />
+          <Button label="Retry" onPress={fetchDetails} variant="secondary" />
+        </SectionCard>
       ) : null}
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>{displayRecord.title || 'Untitled record'}</Text>
-        <Text style={styles.cardBody}>ID: {displayRecord.id}</Text>
-        <Text style={styles.cardBody}>Authors: {formatAuthors(displayRecord.authors)}</Text>
-        {displayRecord.publishedYear || displayRecord.format ? (
-          <Text style={styles.cardBody}>
-            {[displayRecord.format, displayRecord.publishedYear].filter(Boolean).join(' · ')}
-          </Text>
-        ) : null}
-        {displayRecord.publisher ? (
-          <Text style={styles.cardBody}>Publisher: {displayRecord.publisher}</Text>
-        ) : null}
-        {displayRecord.language ? (
-          <Text style={styles.cardBody}>Language: {displayRecord.language}</Text>
-        ) : null}
-        {displayRecord.description ? (
-          <Text style={styles.cardMeta}>{displayRecord.description}</Text>
-        ) : null}
-        {availability ? (
-          <Text style={styles.cardMeta}>{formatAvailability(availability)}</Text>
-        ) : null}
+      <SectionCard
+        title={displayRecord.title || 'Untitled record'}
+        body={formatAuthors(displayRecord.authors ?? [])}
+        meta={displayRecord.publisher || displayRecord.publishedYear?.toString()}
+      >
+        <Inline>
+          {displayRecord.mediaType || displayRecord.format ? (
+            <Badge label={displayRecord.mediaType || displayRecord.format || 'Item'} />
+          ) : null}
+          {availability ? <Badge label={formatAvailability(availability)} tone="success" /> : null}
+        </Inline>
+        {displayRecord.description ? <Text style={styles.bodyText}>{displayRecord.description}</Text> : null}
         {detailLink ? (
-          <TouchableOpacity
-            onPress={() => Linking.openURL(detailLink)}
-            style={styles.linkButton}
-          >
-            <Text style={styles.linkButtonText}>Open detail link</Text>
-          </TouchableOpacity>
-        ) : (
-          <Text style={styles.cardMeta}>No detail link available.</Text>
-        )}
-      </View>
+          <Button label="Open in catalog" onPress={() => Linking.openURL(detailLink)} variant="secondary" />
+        ) : null}
+      </SectionCard>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Reminders for this record</Text>
-        <Text style={styles.cardMeta}>Create a local reminder from this title.</Text>
-        <View style={styles.reminderActions}>
-          <TouchableOpacity
-            onPress={() => scheduleManualReminder(24)}
-            style={styles.secondaryButton}
-          >
-            <Text style={styles.secondaryButtonText}>Tomorrow</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => scheduleManualReminder(24 * 7)}
-            style={styles.secondaryButton}
-          >
-            <Text style={styles.secondaryButtonText}>Next week</Text>
-          </TouchableOpacity>
-        </View>
+      {displayRecord.identifiers?.length ? (
+        <SectionCard title="Identifiers">
+          <Stack gap={8}>
+            {displayRecord.identifiers.map((identifier) => (
+              <Text key={`${identifier.system}:${identifier.value}`} style={styles.metaText}>
+                {formatIdentifier(identifier)}
+              </Text>
+            ))}
+          </Stack>
+        </SectionCard>
+      ) : null}
 
-        {manualReminders.length === 0 ? (
-          <Text style={styles.cardMeta}>No reminders yet.</Text>
+      <SectionCard title="Manual reminders" body="Create a quick reminder for this record.">
+        <Inline>
+          <Button label="In 4h" onPress={() => scheduleManualReminder(4)} variant="secondary" compact />
+          <Button label="In 24h" onPress={() => scheduleManualReminder(24)} variant="secondary" compact />
+          <Button label="In 72h" onPress={() => scheduleManualReminder(72)} variant="secondary" compact />
+        </Inline>
+        {manualReminders.length ? (
+          <Stack gap={10}>
+            {manualReminders.map((reminder) => (
+              <Inline key={reminder.id} justify="space-between" wrap={false} align="center" style={styles.reminderRow}>
+                <View style={styles.reminderCopy}>
+                  <Text style={styles.metaText}>Remind at: {formatTimestamp(reminder.remindAt)}</Text>
+                  <Text style={styles.metaText}>Status: {reminder.status}</Text>
+                </View>
+                <Switch
+                  value={reminder.status === 'scheduled'}
+                  onValueChange={() => toggleReminder(reminder.id)}
+                  trackColor={{ false: palette.border, true: palette.primary }}
+                  thumbColor={palette.surface}
+                />
+              </Inline>
+            ))}
+          </Stack>
         ) : (
-          manualReminders.map((reminder) => (
-            <View key={reminder.id} style={styles.reminderRow}>
-              <View style={styles.reminderText}>
-                <Text style={styles.cardBody}>Remind at {formatTimestamp(reminder.remindAt)}</Text>
-                <Text style={styles.cardMeta}>Status: {reminder.status}</Text>
-              </View>
-              <Switch
-                value={reminder.status === 'scheduled'}
-                onValueChange={() => toggleReminder(reminder.id)}
-                trackColor={{ false: palette.border, true: palette.primary }}
-                thumbColor={palette.surface}
-              />
-            </View>
-          ))
+          <Text style={styles.metaText}>No manual reminders scheduled yet.</Text>
         )}
-      </View>
-      </ScrollView>
-    </SafeAreaView>
+      </SectionCard>
+    </ScreenLayout>
   );
 }
 
 const createStyles = (palette: AppPalette) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      paddingHorizontal: 20,
-      paddingTop: 16,
-      backgroundColor: palette.background,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      marginBottom: 16,
-    },
-    backButton: {
-      minWidth: 44,
-      minHeight: 44,
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.surface,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    scrollContent: {
-      paddingBottom: 24,
-    },
-    backButtonText: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: palette.text,
-    },
-    title: {
-      fontSize: 20,
-      fontWeight: '600',
-      color: palette.text,
+    content: {
+      paddingBottom: 32,
     },
     loadingRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-      marginBottom: 12,
+      marginTop: -8,
     },
     loadingText: {
-      fontSize: 12,
+      fontSize: 14,
       color: palette.textSubtle,
     },
-    stateCard: {
-      padding: 14,
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.surface,
-      marginBottom: 12,
-    },
-    stateTitle: {
+    bodyText: {
       fontSize: 14,
-      fontWeight: '600',
-      color: palette.text,
-    },
-    stateBody: {
-      marginTop: 6,
-      fontSize: 12,
+      lineHeight: 20,
       color: palette.textSubtle,
     },
-    secondaryButton: {
-      marginTop: 10,
-      alignSelf: 'flex-start',
-      paddingVertical: 6,
-      paddingHorizontal: 12,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.secondary,
-    },
-    secondaryButtonText: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: palette.secondaryText,
-    },
-    card: {
-      padding: 18,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.surface,
-      marginBottom: 14,
-    },
-    cardTitle: {
-      fontSize: 18,
-      fontWeight: '600',
-      color: palette.text,
-    },
-    cardBody: {
-      marginTop: 10,
-      fontSize: 14,
+    metaText: {
+      fontSize: 13,
       color: palette.textMuted,
     },
-    cardMeta: {
-      marginTop: 12,
-      fontSize: 12,
-      color: palette.textSubtle,
-    },
-    reminderActions: {
-      marginTop: 12,
-      flexDirection: 'row',
-      gap: 10,
-      flexWrap: 'wrap',
-    },
     reminderRow: {
-      marginTop: 12,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 12,
+      paddingTop: 4,
     },
-    reminderText: {
+    reminderCopy: {
       flex: 1,
-    },
-    linkButton: {
-      marginTop: 14,
-      alignSelf: 'flex-start',
-      paddingVertical: 8,
-      paddingHorizontal: 14,
-      borderRadius: 999,
-      backgroundColor: palette.primary,
-    },
-    linkButtonText: {
-      color: palette.primaryText,
-      fontSize: 12,
-      fontWeight: '600',
+      gap: 6,
     },
   });
