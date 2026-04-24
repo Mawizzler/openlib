@@ -1,9 +1,14 @@
-import { StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 import { useMemo } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useReminderState } from '@/src/application/state/ReminderStateStore';
 import type { ReminderItem } from '@/src/domain/models/reminders';
+import {
+  Inline,
+  ScreenHeader,
+  ScreenLayout,
+  SectionCard,
+} from '@/src/presentation/components/ScreenChrome';
 import { useAppPalette, type AppPalette } from '@/src/presentation/theme/palette';
 
 type ReminderHistoryScreenProps = {
@@ -33,31 +38,24 @@ export function ReminderHistoryScreen({ onBack }: ReminderHistoryScreenProps) {
   const styles = useMemo(() => createStyles(palette), [palette]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Scheduled Reminders</Text>
-      </View>
-      <Text style={styles.subtitle}>Local schedule</Text>
-      <Text style={styles.body}>
-        Toggle a reminder off to skip it. Regenerate from settings to refresh.
-      </Text>
+    <ScreenLayout scrollable>
+      <ScreenHeader
+        title="Scheduled Reminders"
+        subtitle="Toggle a reminder off to skip it. Regenerate from settings to refresh."
+        onBack={onBack}
+      />
 
       {isLoading ? (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Loading schedule…</Text>
-        </View>
+        <SectionCard title="Loading schedule…" />
       ) : scheduled.length === 0 ? (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>No reminders scheduled</Text>
-          <Text style={styles.cardText}>Refresh your account snapshot and regenerate.</Text>
-        </View>
+        <SectionCard
+          title="No reminders scheduled"
+          body="Refresh your account snapshot and regenerate."
+        />
       ) : (
         scheduled.map((reminder) => (
-          <View key={reminder.id} style={styles.card}>
-            <View style={styles.row}>
+          <SectionCard key={reminder.id}>
+            <Inline justify="space-between" wrap={false} align="center">
               <Text style={styles.cardTitle}>{reminder.title}</Text>
               <Switch
                 value={reminder.status === 'scheduled'}
@@ -66,83 +64,26 @@ export function ReminderHistoryScreen({ onBack }: ReminderHistoryScreenProps) {
                 trackColor={{ false: palette.border, true: palette.primary }}
                 thumbColor={palette.surface}
               />
-            </View>
+            </Inline>
             <Text style={styles.cardText}>{getReminderMeta(reminder)}</Text>
             <Text style={styles.cardText}>Remind at: {formatTimestamp(reminder.remindAt)}</Text>
             <Text style={styles.cardText}>Status: {reminder.status}</Text>
-          </View>
+          </SectionCard>
         ))
       )}
-    </SafeAreaView>
+    </ScreenLayout>
   );
 }
 
 const createStyles = (palette: AppPalette) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      padding: 24,
-      backgroundColor: palette.background,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    backButton: {
-      minHeight: 44,
-      minWidth: 44,
-      paddingVertical: 6,
-      paddingHorizontal: 12,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.surface,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    backButtonText: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: palette.text,
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: '600',
-      color: palette.text,
-    },
-    subtitle: {
-      marginTop: 6,
-      fontSize: 14,
-      color: palette.textSubtle,
-    },
-    body: {
-      marginTop: 16,
-      fontSize: 14,
-      lineHeight: 20,
-      color: palette.textMuted,
-    },
-    card: {
-      marginTop: 20,
-      padding: 16,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.surface,
-    },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 12,
-    },
     cardTitle: {
+      flex: 1,
       fontSize: 14,
       fontWeight: '600',
       color: palette.text,
     },
     cardText: {
-      marginTop: 8,
       fontSize: 13,
       color: palette.textSubtle,
     },

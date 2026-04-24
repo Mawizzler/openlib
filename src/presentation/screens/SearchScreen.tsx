@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -5,21 +6,34 @@ import {
   Keyboard,
   StyleSheet,
   Text,
-  TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import { useMemo, useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { SearchFlowService } from '@/src/application/services/opac/SearchFlowService';
 import { useActiveLibrary } from '@/src/application/state/ActiveLibraryStore';
 import { useRecentSearches } from '@/src/application/state/RecentSearchesStore';
 import { useReminderState } from '@/src/application/state/ReminderStateStore';
-import { SearchFlowService } from '@/src/application/services/opac/SearchFlowService';
 import type { OpacBriefRecord, OpacSearchResult } from '@/src/domain/models/opac';
+import {
+  Badge,
+  Button,
+  Card,
+  Inline,
+  Input,
+  ScreenHeader,
+  ScreenLayout,
+  StateNotice,
+} from '@/src/presentation/components/ScreenChrome';
 import { useAppPalette, type AppPalette } from '@/src/presentation/theme/palette';
 
 type AvailabilityTone = 'positive' | 'negative' | 'neutral';
+type SearchStatus = 'idle' | 'loading' | 'success' | 'error';
+
+type SearchScreenProps = {
+  onBack: () => void;
+  onPickLibrary: () => void;
+  onShowDetails: (record: OpacBriefRecord, libraryId: string | null) => void;
+};
 
 const normalizeTitle = (title?: string) => {
   const trimmed = title?.trim() ?? '';
@@ -41,17 +55,11 @@ const formatMediaLabel = (format?: string) => {
 
 const formatPublicationMeta = (record: OpacBriefRecord) => {
   const parts: string[] = [];
-  if (record.publishedYear) {
-    parts.push(`Published ${record.publishedYear}`);
-  }
+  if (record.publishedYear) parts.push(`Published ${record.publishedYear}`);
   const publisher = record.publisher?.trim();
-  if (publisher) {
-    parts.push(publisher);
-  }
+  if (publisher) parts.push(publisher);
   const language = record.language?.trim();
-  if (language) {
-    parts.push(`Language: ${language}`);
-  }
+  if (language) parts.push(`Language: ${language}`);
   return parts.length > 0 ? parts.join(' · ') : 'Publication details unavailable';
 };
 
@@ -75,14 +83,6 @@ const getAvailabilityBadge = (
   }
 };
 
-type SearchScreenProps = {
-  onBack: () => void;
-  onPickLibrary: () => void;
-  onShowDetails: (record: OpacBriefRecord, libraryId: string | null) => void;
-};
-
-type SearchStatus = 'idle' | 'loading' | 'success' | 'error';
-
 export function SearchScreen({ onBack, onPickLibrary, onShowDetails }: SearchScreenProps) {
   const { activeLibrary, isLoading } = useActiveLibrary();
   const { createManualReminder } = useReminderState();
@@ -94,7 +94,6 @@ export function SearchScreen({ onBack, onPickLibrary, onShowDetails }: SearchScr
   const { recentSearches, addSearch, clearSearches } = useRecentSearches();
   const palette = useAppPalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
-
   const searchService = useMemo(() => new SearchFlowService(), []);
 
   const canSearch = Boolean(activeLibrary) && !isLoading;
@@ -118,10 +117,7 @@ export function SearchScreen({ onBack, onPickLibrary, onShowDetails }: SearchScr
     setStatus('loading');
     setError(null);
     try {
-      const response = await searchService.search(activeLibrary!, {
-        query: trimmed,
-        page: 1,
-      });
+      const response = await searchService.search(activeLibrary!, { query: trimmed, page: 1 });
       setResults(response);
       setStatus('success');
       addSearch(trimmed);
@@ -154,470 +150,188 @@ export function SearchScreen({ onBack, onPickLibrary, onShowDetails }: SearchScr
     const title = normalizeTitle(item.title);
     const authors = formatAuthors(item.authors);
     const publicationMeta = formatPublicationMeta(item);
-    const mediaLabel = formatMediaLabel(item.format);
-    const availabilityBadge = getAvailabilityBadge(item);
+    const mediaLabel = formatMediaLabel(item.mediaType || item.format);
+    const availability = getAvailabilityBadge(item);
 
     return (
-      <View style={styles.resultCard}>
-        <TouchableOpacity
-          style={styles.resultMain}
-          onPress={() => onShowDetails(item, activeLibrary?.id ?? null)}
-        >
-          <View style={styles.coverContainer}>
-            {item.coverUrl ? (
-              <Image source={{ uri: item.coverUrl }} style={styles.coverImage} resizeMode="cover" />
-            ) : (
-              <View style={styles.coverPlaceholder}>
-                <Text style={styles.coverPlaceholderText}>No cover</Text>
-              </View>
-            )}
-          </View>
-          <View style={styles.resultInfo}>
-            <View style={styles.badgeRow}>
-              <View style={styles.mediaBadge}>
-                <Text style={styles.mediaBadgeText}>{mediaLabel}</Text>
-              </View>
-              {availabilityBadge ? (
-                <View
-                  style={[
-                    styles.statusBadge,
-                    availabilityBadge.tone === 'positive' && styles.statusBadgePositive,
-                    availabilityBadge.tone === 'negative' && styles.statusBadgeNegative,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.statusBadgeText,
-                      availabilityBadge.tone === 'positive' && styles.statusBadgePositiveText,
-                      availabilityBadge.tone === 'negative' && styles.statusBadgeNegativeText,
-                    ]}
-                  >
-                    {availabilityBadge.label}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
+      <Card style={styles.resultCard}>
+        <View style={styles.resultTopRow}>
+          {item.coverImageUrl ? <Image source={{ uri: item.coverImageUrl }} style={styles.coverImage} /> : null}
+          <View style={styles.resultContent}>
             <Text style={styles.resultTitle}>{title}</Text>
-            <Text style={styles.resultMeta}>{authors}</Text>
+            <Text style={styles.resultAuthors}>{authors}</Text>
+            <Text style={styles.resultMeta}>{mediaLabel}</Text>
             <Text style={styles.resultMeta}>{publicationMeta}</Text>
+            {availability ? (
+              <Badge
+                label={availability.label}
+                tone={
+                  availability.tone === 'positive'
+                    ? 'success'
+                    : availability.tone === 'negative'
+                      ? 'danger'
+                      : 'neutral'
+                }
+              />
+            ) : null}
           </View>
-        </TouchableOpacity>
-        <View style={styles.resultActions}>
-          <TouchableOpacity
+        </View>
+        <Inline style={styles.resultActions}>
+          <Button
+            label="Details"
+            onPress={() => onShowDetails(item, activeLibrary?.id ?? null)}
+            variant="secondary"
+          />
+          <Button
+            label="Remind in 24h"
             onPress={() => scheduleQuickReminder(item, 24)}
-            style={styles.resultActionButton}
-          >
-            <Text style={styles.resultActionText}>Remind tomorrow</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+            variant="secondary"
+          />
+        </Inline>
+      </Card>
     );
   };
 
-  const listEmpty = () => {
-    if (status === 'loading') return null;
-    if (status === 'error') {
-      return (
-        <View style={styles.stateCard}>
-          <Text style={styles.stateTitle}>Search error</Text>
-          <Text style={styles.stateBody}>{error ?? 'Something went wrong.'}</Text>
-        </View>
-      );
-    }
-    if (!canSearch && !isLoading) {
-      return (
-        <View style={styles.stateCard}>
-          <Text style={styles.stateTitle}>Select a library to search</Text>
-          <Text style={styles.stateBody}>Pick a library above to see available titles.</Text>
-        </View>
-      );
-    }
-    if (status === 'success' && results && results.records.length === 0) {
-      return (
-        <View style={styles.stateCard}>
-          <Text style={styles.stateTitle}>No matches found</Text>
-          <Text style={styles.stateBody}>
-            {submittedQuery
-              ? `No results for “${submittedQuery}”. Try a shorter title or author name.`
-              : 'Try a broader title, author, or keyword.'}
-          </Text>
-        </View>
-      );
-    }
-    if (recentSearches.length > 0) {
-      return (
-        <View style={styles.stateCard}>
-          <View style={styles.recentHeader}>
-            <Text style={styles.stateTitle}>Recent searches</Text>
-            <TouchableOpacity onPress={clearSearches} style={styles.clearButton}>
-              <Text style={styles.clearButtonText}>Clear</Text>
-            </TouchableOpacity>
-          </View>
-          {recentSearches.map((entry) => (
-            <TouchableOpacity
-              key={`${entry.query}-${entry.searchedAt}`}
-              onPress={() => handleRecentSelect(entry.query)}
-              style={styles.recentChip}
-            >
-              <Text style={styles.recentChipText}>{entry.query}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.stateCard}>
-        <Text style={styles.stateTitle}>Search your library</Text>
-        <Text style={styles.stateBody}>Enter a title, author, or keyword to begin.</Text>
-      </View>
-    );
-  };
+  const resultCount = results?.records.length ?? 0;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Search</Text>
-      </View>
+    <ScreenLayout scrollable contentStyle={styles.scrollContent}>
+      <ScreenHeader
+        title="Search"
+        subtitle={activeLibrary ? activeLibrary.title : 'Choose a library to search its catalog.'}
+        onBack={onBack}
+      />
 
-      <View style={styles.libraryCard}>
-        <Text style={styles.cardTitle}>Active library</Text>
-        <Text style={styles.cardBody}>
-          {isLoading
-            ? 'Loading selection…'
-            : activeLibrary?.title ?? 'No library selected yet'}
-        </Text>
-        {!activeLibrary && !isLoading ? (
-          <TouchableOpacity onPress={onPickLibrary} style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Choose a library</Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
-
-      <View style={styles.searchRow}>
-        <TextInput
+      <Card>
+        <Input
           value={query}
           onChangeText={setQuery}
-          placeholder={canSearch ? 'Search by title, author, or keyword' : 'Select a library first'}
-          placeholderTextColor={palette.inputPlaceholder}
-          style={[styles.searchInput, !canSearch && styles.searchInputDisabled]}
-          editable={canSearch}
+          placeholder="Search by title, author, or keyword"
           returnKeyType="search"
-          onSubmitEditing={(event) => handleSubmit(event.nativeEvent.text)}
+          onSubmitEditing={() => handleSubmit()}
         />
-        <TouchableOpacity
-          onPress={() => handleSubmit()}
-          style={[styles.primaryButton, !canSearch && styles.primaryButtonDisabled]}
-          disabled={!canSearch}
+        <Inline style={styles.searchActions}>
+          <Button
+            label={canSearch ? 'Search' : 'Choose library first'}
+            onPress={() => handleSubmit()}
+            variant="primary"
+            disabled={status === 'loading'}
+          />
+          {recentSearches.length > 0 ? (
+            <Button label="Clear recent" onPress={clearSearches} variant="secondary" />
+          ) : null}
+        </Inline>
+
+        {status === 'loading' ? (
+          <Inline style={styles.loadingRow}>
+            <ActivityIndicator size="small" color={palette.primary} />
+            <Text style={styles.loadingText}>Searching {activeLibrary?.title}…</Text>
+          </Inline>
+        ) : null}
+
+        {error ? <StateNotice message={error} tone="error" /> : null}
+
+        {recentSearches.length > 0 ? (
+          <View>
+            <Text style={styles.sectionLabel}>Recent searches</Text>
+            <Inline style={styles.recentList}>
+              {recentSearches.map((recentQuery) => (
+                <Button
+                  key={recentQuery}
+                  label={recentQuery}
+                  onPress={() => handleRecentSelect(recentQuery)}
+                  variant="secondary"
+                  compact
+                />
+              ))}
+            </Inline>
+          </View>
+        ) : null}
+      </Card>
+
+      {status === 'success' ? (
+        <Card
+          title={resultCount > 0 ? `${resultCount} result${resultCount === 1 ? '' : 's'}` : 'No results'}
+          body={
+            resultCount > 0
+              ? `Showing matches for “${submittedQuery}”.`
+              : `No matches found for “${submittedQuery}”. Try another search.`
+          }
         >
-          <Text style={styles.primaryButtonText}>Search</Text>
-        </TouchableOpacity>
-      </View>
-
-      {status === 'loading' ? (
-        <View style={styles.loadingRow}>
-          <ActivityIndicator size="small" color={palette.primary} />
-          <Text style={styles.loadingText}>Searching {activeLibrary?.title ?? 'library'}…</Text>
-        </View>
+          {resultCount > 0 ? (
+            <FlatList
+              data={results?.records ?? []}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+              contentContainerStyle={styles.resultsList}
+              renderItem={renderResult}
+            />
+          ) : null}
+        </Card>
       ) : null}
-
-      <FlatList
-        data={results?.records ?? []}
-        keyExtractor={(item) => item.id}
-        renderItem={renderResult}
-        contentContainerStyle={styles.listContent}
-        keyboardShouldPersistTaps="handled"
-        ListEmptyComponent={listEmpty}
-      />
-    </SafeAreaView>
+    </ScreenLayout>
   );
 }
 
 const createStyles = (palette: AppPalette) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-      paddingHorizontal: 20,
-      paddingTop: 16,
-      backgroundColor: palette.background,
+    scrollContent: {
+      paddingBottom: 48,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      marginBottom: 16,
-    },
-    backButton: {
-      minWidth: 44,
-      minHeight: 44,
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.surface,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    backButtonText: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: palette.text,
-    },
-    title: {
-      fontSize: 20,
-      fontWeight: '600',
-      color: palette.text,
-    },
-    libraryCard: {
-      padding: 16,
-      borderRadius: 16,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.surface,
-      marginBottom: 16,
-    },
-    cardTitle: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: palette.text,
-    },
-    cardBody: {
-      marginTop: 6,
-      fontSize: 15,
-      color: palette.textMuted,
-    },
-    secondaryButton: {
+    searchActions: {
       marginTop: 12,
-      alignSelf: 'flex-start',
-      paddingVertical: 8,
-      paddingHorizontal: 14,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.secondary,
-    },
-    secondaryButtonText: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: palette.secondaryText,
-    },
-    searchRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-      marginBottom: 12,
-    },
-    searchInput: {
-      flex: 1,
-      borderWidth: 1,
-      borderColor: palette.inputBorder,
-      borderRadius: 12,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      fontSize: 14,
-      backgroundColor: palette.inputBackground,
-      color: palette.inputText,
-    },
-    searchInputDisabled: {
-      backgroundColor: palette.surfaceMuted,
-      color: palette.textSubtle,
-    },
-    primaryButton: {
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      borderRadius: 999,
-      backgroundColor: palette.primary,
-    },
-    primaryButtonDisabled: {
-      opacity: 0.55,
-    },
-    primaryButtonText: {
-      color: palette.primaryText,
-      fontSize: 12,
-      fontWeight: '600',
     },
     loadingRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-      marginBottom: 8,
+      marginTop: 12,
     },
     loadingText: {
-      fontSize: 12,
+      fontSize: 14,
       color: palette.textSubtle,
     },
-    listContent: {
-      paddingBottom: 24,
+    sectionLabel: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: palette.textMuted,
     },
-    resultCard: {
-      padding: 14,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.surface,
-      marginBottom: 10,
+    recentList: {
+      marginTop: 12,
     },
-    resultMain: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
+    resultsList: {
+      paddingTop: 4,
       gap: 12,
     },
-    coverContainer: {
-      width: 64,
-      height: 96,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.surfaceMuted,
-      overflow: 'hidden',
+    resultCard: {
+      marginTop: 0,
+    },
+    resultTopRow: {
+      flexDirection: 'row',
+      gap: 14,
+      alignItems: 'flex-start',
     },
     coverImage: {
-      width: '100%',
-      height: '100%',
+      width: 72,
+      height: 108,
+      borderRadius: 10,
+      backgroundColor: palette.surfaceMuted,
     },
-    coverPlaceholder: {
+    resultContent: {
       flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 6,
-    },
-    coverPlaceholderText: {
-      fontSize: 10,
-      fontWeight: '600',
-      color: palette.textSubtle,
-      textAlign: 'center',
-    },
-    resultInfo: {
-      flex: 1,
-      gap: 4,
-    },
-    badgeRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
       gap: 6,
-      marginBottom: 2,
-    },
-    mediaBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.surfaceMuted,
-    },
-    mediaBadgeText: {
-      fontSize: 10,
-      fontWeight: '600',
-      color: palette.textMuted,
-    },
-    statusBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.surfaceMuted,
-    },
-    statusBadgeText: {
-      fontSize: 10,
-      fontWeight: '600',
-      color: palette.textMuted,
-    },
-    statusBadgePositive: {
-      borderColor: palette.primary,
-      backgroundColor: palette.primary,
-    },
-    statusBadgePositiveText: {
-      color: palette.primaryText,
-    },
-    statusBadgeNegative: {
-      borderColor: palette.danger,
-      backgroundColor: palette.danger,
-    },
-    statusBadgeNegativeText: {
-      color: palette.dangerText,
-    },
-    resultActions: {
-      marginTop: 10,
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 10,
-    },
-    resultActionButton: {
-      paddingVertical: 6,
-      paddingHorizontal: 12,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.secondary,
-    },
-    resultActionText: {
-      fontSize: 11,
-      fontWeight: '600',
-      color: palette.secondaryText,
     },
     resultTitle: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: palette.text,
-    },
-    resultMeta: {
-      fontSize: 12,
-      color: palette.textSubtle,
-    },
-    stateCard: {
-      paddingVertical: 32,
-      alignItems: 'center',
-    },
-    recentHeader: {
-      width: '100%',
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 12,
-    },
-    clearButton: {
-      paddingVertical: 4,
-      paddingHorizontal: 10,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.secondary,
-    },
-    clearButtonText: {
-      fontSize: 11,
-      fontWeight: '600',
-      color: palette.secondaryText,
-    },
-    recentChip: {
-      alignSelf: 'stretch',
-      paddingVertical: 10,
-      paddingHorizontal: 14,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: palette.border,
-      backgroundColor: palette.surface,
-      marginBottom: 10,
-    },
-    recentChipText: {
-      fontSize: 13,
-      fontWeight: '500',
-      color: palette.text,
-    },
-    stateTitle: {
       fontSize: 16,
       fontWeight: '600',
       color: palette.text,
-      textAlign: 'center',
     },
-    stateBody: {
-      marginTop: 6,
-      fontSize: 12,
+    resultAuthors: {
+      fontSize: 14,
       color: palette.textSubtle,
-      textAlign: 'center',
+    },
+    resultMeta: {
+      fontSize: 12,
+      color: palette.textMuted,
+    },
+    resultActions: {
+      marginTop: 4,
     },
   });
