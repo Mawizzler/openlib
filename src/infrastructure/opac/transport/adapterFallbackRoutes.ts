@@ -29,6 +29,8 @@ export type AdapterFallbackRoutes = {
 };
 
 const normalizeBaseUrl = (baseUrl: string) => baseUrl.trim().replace(/\/+$/, '');
+const hasHttpScheme = (baseUrl: string) => /^http:\/\//i.test(baseUrl.trim());
+const toHttpsBaseUrl = (baseUrl: string) => baseUrl.trim().replace(/^http:\/\//i, 'https://');
 
 const route = (
   system: AdapterFallbackSystem,
@@ -203,21 +205,35 @@ const kohaRoutes = (input: AdapterFallbackRouteInput): AdapterFallbackRouteCandi
   ];
 };
 
+const withPromotedHttpsCandidates = (
+  input: AdapterFallbackRouteInput,
+  buildRoutes: (nextInput: AdapterFallbackRouteInput) => AdapterFallbackRouteCandidate[],
+): AdapterFallbackRouteCandidate[] => {
+  if (!hasHttpScheme(input.baseUrl)) {
+    return buildRoutes(input);
+  }
+
+  return [
+    ...buildRoutes({ ...input, baseUrl: toHttpsBaseUrl(input.baseUrl) }),
+    ...buildRoutes(input),
+  ];
+};
+
 export const buildAdapterFallbackRoutes = (input: AdapterFallbackRouteInput): AdapterFallbackRoutes => {
   let generated: AdapterFallbackRouteCandidate[];
 
   switch (input.system) {
     case 'open':
-      generated = openRoutes(input);
+      generated = withPromotedHttpsCandidates(input, openRoutes);
       break;
     case 'webopac.net':
-      generated = webOpacNetRoutes(input);
+      generated = withPromotedHttpsCandidates(input, webOpacNetRoutes);
       break;
     case 'sisis':
       generated = sisisRoutes(input);
       break;
     case 'primo':
-      generated = primoRoutes(input);
+      generated = withPromotedHttpsCandidates(input, primoRoutes);
       break;
     case 'adis':
       generated = adisRoutes(input);
