@@ -11,8 +11,12 @@ import {
 } from '@/src/infrastructure/opac/transport/adapterFallbackRoutes';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 
-const provider = (api: string, baseUrl = 'https://catalog.example.org/opac'): OpacappNormalizedProvider => ({
-  id: `${api}-test`,
+const provider = (
+  api: string,
+  baseUrl = 'https://catalog.example.org/opac',
+  id = `${api}-test`,
+): OpacappNormalizedProvider => ({
+  id,
   title: `${api} Test`,
   api,
   baseUrl,
@@ -203,6 +207,72 @@ const run = async () => {
       assert.equal(calls[1].acceptLanguage, 'en-US,en;q=0.9');
       assert.equal(calls[0].userAgent, 'openlib-vufind-adapter');
       assert.equal(calls[1].userAgent, 'openlib-vufind-adapter');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  }
+
+  {
+    const calls: Array<{ url: string; userAgent: string; acceptLanguage: string | null; cookie: string | null }> = [];
+    globalThis.fetch = async (url, init) => {
+      const target = String(url);
+      const headers = new Headers(init?.headers);
+      calls.push({
+        url: target,
+        userAgent: headers.get('User-Agent') ?? '',
+        acceptLanguage: headers.get('Accept-Language'),
+        cookie: headers.get('Cookie'),
+      });
+
+      const pathname = new URL(target).pathname;
+      if (calls.length === 1) {
+        assert.equal(pathname, '/');
+        return new Response('warmup', {
+          status: 200,
+          headers: { 'x-openlib-proxy-set-cookie': 'SESSION=initial; Path=/; HttpOnly' },
+        });
+      }
+
+      if (calls.length === 2) {
+        assert.equal(pathname, '/Search/Results');
+        return new Response('expired', { status: 419 });
+      }
+
+      if (calls.length === 3) {
+        assert.equal(pathname, '/');
+        return new Response('warmup-refresh', {
+          status: 200,
+          headers: { 'set-cookie': 'SESSION=refreshed; Path=/; HttpOnly' },
+        });
+      }
+
+      return new Response('<html><body><div class="result"><a href="/Record/9051">Hit</a></div></body></html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      });
+    };
+
+    try {
+      const adapter = new VuFindAdapter(provider('vufind', 'https://vufind.example.org', '9051'));
+      const result = await adapter.search({ query: 'climate', page: 1 });
+      assert.equal(result.records.length, 1);
+      assert.equal(calls.length, 4, 'expected warmup + search + refresh warmup + retry');
+      assert.deepEqual(
+        calls.map((entry) => new URL(entry.url).pathname),
+        ['/', '/Search/Results', '/', '/Search/Results'],
+      );
+      assert.equal(calls[0].cookie, null);
+      assert.equal(calls[1].cookie, 'SESSION=initial');
+      assert.equal(calls[2].cookie, 'SESSION=initial');
+      assert.equal(calls[3].cookie, 'SESSION=refreshed');
+      assert.equal(calls[0].acceptLanguage, null);
+      assert.equal(calls[1].acceptLanguage, null);
+      assert.equal(calls[2].acceptLanguage, null);
+      assert.equal(calls[3].acceptLanguage, 'en-US,en;q=0.9');
+      assert.equal(calls[0].userAgent, 'openlib-vufind-adapter');
+      assert.equal(calls[1].userAgent, 'openlib-vufind-adapter');
+      assert.equal(calls[2].userAgent, 'openlib-vufind-adapter');
+      assert.equal(calls[3].userAgent, 'openlib-vufind-adapter');
     } finally {
       globalThis.fetch = originalFetch;
     }
