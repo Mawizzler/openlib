@@ -23,7 +23,7 @@ const provider = (api: string, baseUrl = 'https://catalog.example.org/opac'): Op
   },
 });
 
-const routeUrls = (
+const routeCandidates = (
   system: Parameters<typeof buildAdapterFallbackRoutes>[0]['system'],
   baseUrl = 'https://catalog.example.org/opac/search.aspx',
   providerId = system === 'sisis' ? '8714' : `${system}-test`,
@@ -35,7 +35,13 @@ const routeUrls = (
     page: 2,
     pageSize: 20,
     providerId,
-  }).candidates.map((candidate) => candidate.url);
+  }).candidates;
+
+const routeUrls = (
+  system: Parameters<typeof buildAdapterFallbackRoutes>[0]['system'],
+  baseUrl = 'https://catalog.example.org/opac/search.aspx',
+  providerId = system === 'sisis' ? '8714' : `${system}-test`,
+) => routeCandidates(system, baseUrl, providerId).map((candidate) => candidate.url);
 
 const run = async () => {
   assert.deepEqual(uniqueUrlCandidates(['a', 'b', 'a', ' ', 'c']), ['a', 'b', 'c']);
@@ -67,6 +73,29 @@ const run = async () => {
     'https://catalog.example.org/search.aspx?AKT_VALUE=climate&Seite=2',
   ]);
 
+  assert.deepEqual(routeUrls('open', 'http://catalog.example.org/opac/search.aspx'), [
+    'https://catalog.example.org/search.json?q=climate&page=2&limit=20',
+    'https://catalog.example.org/Mediensuche/EinfacheSuche.aspx?search=climate',
+    'https://catalog.example.org/Mediensuche/Einfache-Suche?search=climate',
+    'http://catalog.example.org/search.json?q=climate&page=2&limit=20',
+    'http://catalog.example.org/Mediensuche/EinfacheSuche.aspx?search=climate',
+    'http://catalog.example.org/Mediensuche/Einfache-Suche?search=climate',
+  ]);
+  assert.deepEqual(routeUrls('webopac.net', 'http://catalog.example.org/opac/search.aspx'), [
+    'https://catalog.example.org/search.aspx?STICHWORT=climate&Seite=2',
+    'https://catalog.example.org/search.aspx?SEARCHTERM=climate&Seite=2',
+    'https://catalog.example.org/search.aspx?AKT_VALUE=climate&Seite=2',
+    'http://catalog.example.org/search.aspx?STICHWORT=climate&Seite=2',
+    'http://catalog.example.org/search.aspx?SEARCHTERM=climate&Seite=2',
+    'http://catalog.example.org/search.aspx?AKT_VALUE=climate&Seite=2',
+  ]);
+  const primoHttpRoutes = routeUrls('primo', 'http://catalog.example.org/opac/search.aspx');
+  assert.equal(primoHttpRoutes.length, 4);
+  assert.ok(primoHttpRoutes[0].startsWith('https://'));
+  assert.ok(primoHttpRoutes[1].startsWith('https://'));
+  assert.ok(primoHttpRoutes[2].startsWith('http://'));
+  assert.ok(primoHttpRoutes[3].startsWith('http://'));
+
   const leipzigSisisRoutes = routeUrls('sisis', 'https://bibliothekskatalog.leipzig.de/webOPACClient', '8714');
   assert.equal(
     leipzigSisisRoutes[0],
@@ -79,6 +108,18 @@ const run = async () => {
   assert.ok(routeUrls('primo')[0].includes('/primo_library/libweb/action/search.do?fn=search'));
   assert.ok(routeUrls('adis').some((url) => url.includes('/api/search?')));
   assert.ok(routeUrls('koha')[0].includes('/cgi-bin/koha/opac-search.pl?q=climate&idx=kw'));
+
+  const sisisHttpRoutes = routeUrls('sisis', 'http://catalog.example.org/opac/search.aspx', 'sisis-test');
+  assert.equal(sisisHttpRoutes.length, 3);
+  assert.ok(sisisHttpRoutes.every((url) => url.startsWith('http://')));
+
+  const adisHttpRoutes = routeUrls('adis', 'http://catalog.example.org/opac/search.aspx');
+  assert.equal(adisHttpRoutes.length, 16);
+  assert.ok(adisHttpRoutes.every((url) => url.startsWith('http://')));
+
+  const kohaHttpRoutes = routeUrls('koha', 'http://catalog.example.org/opac/search.aspx');
+  assert.equal(kohaHttpRoutes.length, 3);
+  assert.ok(kohaHttpRoutes.every((url) => url.startsWith('http://')));
 
   const originalFetch = globalThis.fetch;
   const calls: string[] = [];
