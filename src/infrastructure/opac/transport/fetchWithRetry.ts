@@ -1,3 +1,5 @@
+import { resolveCatalogProxyRequest } from '@/src/infrastructure/opac/transport/catalogProxy';
+
 const DEFAULT_TIMEOUT_MS = 8000;
 const DEFAULT_MAX_ATTEMPTS = 2;
 const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
@@ -30,6 +32,7 @@ export const fetchTextWithRetry = async (
   init: RequestInit = {},
   options: FetchWithRetryOptions = {},
 ): Promise<string> => {
+  const diagnosticUrl = url;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxAttempts = Math.max(1, options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS);
   let lastStatus: number | undefined;
@@ -40,8 +43,9 @@ export const fetchTextWithRetry = async (
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetch(url, {
-        ...init,
+      const resolved = resolveCatalogProxyRequest(url, init);
+      const response = await fetch(resolved.url, {
+        ...resolved.init,
         signal: controller.signal,
       });
       options.onResponse?.(response);
@@ -54,7 +58,7 @@ export const fetchTextWithRetry = async (
       const retryable = RETRYABLE_STATUSES.has(response.status);
       if (!retryable || attempt >= maxAttempts) {
         throw new Error(
-          `Fetch failed after ${attempt} attempt(s) for ${url} with HTTP ${response.status}`,
+          `Fetch failed after ${attempt} attempt(s) for ${diagnosticUrl} with HTTP ${response.status}`,
         );
       }
     } catch (error) {
@@ -67,7 +71,7 @@ export const fetchTextWithRetry = async (
       if (!isRetryableError(error) || attempt >= maxAttempts) {
         const statusDetail = lastStatus ? ` status=${lastStatus}` : '';
         throw new Error(
-          `Fetch failed after ${attempt} attempt(s) for ${url}${statusDetail}: ${errorMessage(error)}`,
+          `Fetch failed after ${attempt} attempt(s) for ${diagnosticUrl}${statusDetail}: ${errorMessage(error)}`,
         );
       }
     } finally {
@@ -77,6 +81,6 @@ export const fetchTextWithRetry = async (
 
   const statusDetail = lastStatus ? ` status=${lastStatus}` : '';
   throw new Error(
-    `Fetch failed after ${maxAttempts} attempt(s) for ${url}${statusDetail}: ${errorMessage(lastError)}`,
+    `Fetch failed after ${maxAttempts} attempt(s) for ${diagnosticUrl}${statusDetail}: ${errorMessage(lastError)}`,
   );
 };

@@ -9,6 +9,7 @@
     "web": "expo start --web",
     "build:providers": "tsx scripts/build-providers-registry.ts",
     "test:providers": "tsx scripts/test-providers.ts",
+    "test:catalog-proxy-routing": "tsx scripts/tests/catalog-proxy-routing-check.ts",
     "test:provider-url-normalization": "tsx scripts/tests/provider-url-normalization-check.ts",
     "qa:mvp": "tsx scripts/mvp-smoke-check.ts",
     "reminders:demo": "tsx scripts/reminder-demo.ts",

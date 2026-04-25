@@ -858,7 +858,8 @@ export class SisisAdapter implements LibrarySystemAdapter {
 
   private captureCookies(response: Response, session: SessionState) {
     try {
-      const setCookie = response.headers.get('set-cookie');
+      const setCookie =
+        response.headers.get('set-cookie') ?? response.headers.get('x-openlib-proxy-set-cookie');
       if (!setCookie) return;
       const cookies = setCookie
         .split(',')
