@@ -159,14 +159,17 @@ const primoRoutes = (input: AdapterFallbackRouteInput): AdapterFallbackRouteCand
 };
 
 const adisRoutes = (input: AdapterFallbackRouteInput): AdapterFallbackRouteCandidate[] => {
-  const { baseUrl, query, page, pageSize, system } = input;
+  const { baseUrl, query, page, pageSize, providerId, system } = input;
   const params: Record<string, string>[] = [
     { q: query, page: String(page), limit: String(pageSize) },
     { query, page: String(page), limit: String(pageSize) },
     { lookfor: query, page: String(page), limit: String(pageSize) },
     { search: query, page: String(page), limit: String(pageSize) },
   ];
-  const pathnames = ['/search.json', '/search', '/api/search', '/Search/Results'];
+  const useRelativePathnames = String(providerId) === '9023';
+  const pathnames = useRelativePathnames
+    ? ['search.json', 'search', 'api/search', 'Search/Results']
+    : ['/search.json', '/search', '/api/search', '/Search/Results'];
 
   return pathnames.flatMap((pathname) =>
     params.map((entry, index) =>
