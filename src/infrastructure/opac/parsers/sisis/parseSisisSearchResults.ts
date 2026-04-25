@@ -41,6 +41,12 @@ const decodeHtmlEntities = (value: string) => {
 
 const stripHtml = (value: string) => decodeHtmlEntities(value.replace(/<[^>]*>/g, ' '));
 
+const extractAttribute = (value: string, attribute: string) => {
+  const pattern = new RegExp(`${attribute}\\s*=\\s*["']([^"']+)["']`, 'i');
+  const match = value.match(pattern);
+  return match ? match[1] : null;
+};
+
 const resolveUrl = (baseUrl: string, href: string) => {
   try {
     const decodedHref = href.replace(/&amp;/g, '&');
@@ -189,6 +195,71 @@ const extractTitle = (block: string, fallback: string) => {
   return fallback;
 };
 
+const formatFromCandidate = (candidate: string) => {
+  const normalized = candidate.toLowerCase();
+  if (/h(?:ö|oe|o)rbuch|hörspiel|audio[-\s]?book/.test(normalized)) return 'Hörbuch';
+  if (/e[-\s]?book|ebook/.test(normalized)) return 'eBook';
+  if (/\bdvd\b/.test(normalized)) return 'DVD';
+  if (/\bcd\b|cd-rom|audio[-\s]?cd/.test(normalized)) return 'CD';
+  if (/\bbuch\b|\bbook\b|gedruckt|print/.test(normalized)) return 'Buch';
+  return undefined;
+};
+
+const extractFormatFromTitle = (title: string) => {
+  const bracketMatch = title.match(/[\[(]\s*(buch|cd|dvd|hörbuch|hoerbuch|e-?book)\s*[\])]/i);
+  if (bracketMatch) {
+    return formatFromCandidate(bracketMatch[1]);
+  }
+  const tailMatch = title.match(/\s[-–|:]\s*(buch|cd|dvd|hörbuch|hoerbuch|e-?book)\b/i);
+  if (tailMatch) {
+    return formatFromCandidate(tailMatch[1]);
+  }
+  return undefined;
+};
+
+const extractFormat = (block: string, title: string) => {
+  const candidates: string[] = [];
+
+  const imgRegex = /<img[^>]*>/gi;
+  let imgMatch: RegExpExecArray | null = null;
+  while ((imgMatch = imgRegex.exec(block)) !== null) {
+    const tag = imgMatch[0];
+    const alt = extractAttribute(tag, 'alt') ?? extractAttribute(tag, 'title');
+    const src = extractAttribute(tag, 'src');
+    const className = extractAttribute(tag, 'class');
+    if (alt) candidates.push(alt);
+    if (className) candidates.push(className);
+    if (src) candidates.push(src);
+  }
+
+  const dataAttrMatch = block.match(/data-(?:format|type|mediatype|media)\s*=\s*["']([^"']+)["']/i);
+  if (dataAttrMatch) {
+    candidates.push(dataAttrMatch[1]);
+  }
+
+  const labelPatterns = [
+    /class=["'][^"']*(?:mediatype|media|format|material|document|iconlabel|type|medienart|medientyp)[^"']*["'][^>]*>([\s\S]*?)<\/[^>]+>/i,
+    /(?:Medienart|Medientyp|Material|Format|Dokumentart|Dokumenttyp|Typ|Medium)\s*[:\-]?\s*<\/?[^>]*>\s*([^<]{2,80})/i,
+  ];
+  for (const pattern of labelPatterns) {
+    const match = block.match(pattern);
+    if (match) {
+      const text = stripHtml(match[1]);
+      if (text) candidates.push(text);
+    }
+  }
+
+  const titleSignal = extractFormatFromTitle(title);
+  if (titleSignal) return titleSignal;
+
+  for (const candidate of candidates) {
+    const format = formatFromCandidate(candidate);
+    if (format) return format;
+  }
+
+  return undefined;
+};
+
 const extractAvailabilityLabel = (block: string) => {
   const spanMatch = block.match(
     /<span[^>]*class=["'][^"']*(?:textgruen|textrot|textgelb|textorange|textblue)[^"']*["'][^>]*>([\s\S]*?)<\/span>/i,
@@ -276,6 +347,7 @@ const parseBlock = (block: string, baseUrl: string, index: number): OpacBriefRec
   const recordId = recordIdFromUrl ?? `hit-${index + 1}`;
   const title = extractTitle(block, chosen.text || `Result ${index + 1}`);
   const authors = extractAuthors(block);
+  const format = extractFormat(block, title);
   const availabilityLabel = extractAvailabilityLabel(block);
   const availabilityStatus = extractAvailabilityStatus(availabilityLabel);
   const isbns = extractIsbns(block);
@@ -288,6 +360,7 @@ const parseBlock = (block: string, baseUrl: string, index: number): OpacBriefRec
     id: recordId,
     title,
     authors,
+    format,
     detailUrl: detailUrl ?? undefined,
     identifiers: identifiers.length > 0 ? identifiers : undefined,
     availabilityLabel,

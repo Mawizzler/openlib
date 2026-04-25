@@ -16,6 +16,8 @@
     "vufind:demo": "tsx scripts/vufind-search-demo.ts",
     "bibliotheca:demo": "tsx scripts/bibliotheca-search-demo.ts",
     "artifact:provider-health-matrix": "tsx scripts/provider-health-matrix.ts",
+    "artifact:provider-health-baseline": "tsx scripts/provider-health-baseline.ts",
+    "artifact:provider-health-nightly": "npm run test:providers && npm run artifact:provider-health-matrix && npm run artifact:provider-health-baseline",
     "test:open-mediensuche-parser": "tsx scripts/tests/open-mediensuche-parser-check.ts"
   },
   "dependencies": {

@@ -14,7 +14,9 @@ type ProvidersRegistry = {
 type ProviderProbe = {
   id: string | null;
   status: 'working' | 'partial' | 'failing';
+  classification?: 'usable_records' | 'deterministic_no_records';
   reason?: string;
+  checkedAt?: string;
 };
 
 type ProviderStatusArtifact = {
@@ -29,6 +31,7 @@ type ProviderHealthRow = {
   status: ProviderHealthStatus;
   reason: string;
   checkedAt: string;
+  classification?: 'usable_records' | 'deterministic_no_records';
 };
 
 type ProviderHealthMatrix = {
@@ -42,6 +45,12 @@ type ProviderHealthMatrix = {
     green: number;
     red: number;
     unsupported: number;
+    usable_records: number;
+    deterministic_no_records: number;
+  };
+  providerSets: {
+    usable_records: string[];
+    deterministic_no_records: string[];
   };
   matrix: ProviderHealthRow[];
 };
@@ -110,9 +119,21 @@ const run = async () => {
       providerId,
       status: mapped.status,
       reason: mapped.reason,
-      checkedAt: statusArtifact.generatedAt ?? generatedAt,
+      checkedAt: probe.checkedAt ?? statusArtifact.generatedAt ?? generatedAt,
+      classification: probe.classification,
     };
   });
+
+  const providerSets = {
+    usable_records: matrix
+      .filter((entry) => entry.classification === 'usable_records')
+      .map((entry) => entry.providerId)
+      .sort(),
+    deterministic_no_records: matrix
+      .filter((entry) => entry.classification === 'deterministic_no_records')
+      .map((entry) => entry.providerId)
+      .sort(),
+  };
 
   const payload: ProviderHealthMatrix = {
     generatedAt,
@@ -125,7 +146,10 @@ const run = async () => {
       green: matrix.filter((entry) => entry.status === 'green').length,
       red: matrix.filter((entry) => entry.status === 'red').length,
       unsupported: matrix.filter((entry) => entry.status === 'unsupported').length,
+      usable_records: providerSets.usable_records.length,
+      deterministic_no_records: providerSets.deterministic_no_records.length,
     },
+    providerSets,
     matrix,
   };
 
@@ -137,6 +161,8 @@ const run = async () => {
   console.log(`Green: ${payload.totals.green}`);
   console.log(`Red: ${payload.totals.red}`);
   console.log(`Unsupported: ${payload.totals.unsupported}`);
+  console.log(`usable_records: ${payload.totals.usable_records}`);
+  console.log(`deterministic_no_records: ${payload.totals.deterministic_no_records}`);
 };
 
 run().catch((error) => {

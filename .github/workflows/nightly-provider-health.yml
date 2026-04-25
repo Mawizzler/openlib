@@ -1,0 +1,48 @@
+name: Nightly Provider Health
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  provider-health:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run provider probe
+        run: npm run test:providers
+
+      - name: Build provider health matrix
+        run: npm run artifact:provider-health-matrix
+
+      - name: Snapshot baseline and detect drift
+        run: npm run artifact:provider-health-baseline
+
+      - name: Upload provider status artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-status
+          path: artifacts/provider-status
+          if-no-files-found: error
+
+      - name: Upload provider health matrix artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-health-matrix
+          path: artifacts/provider-health-matrix
+          if-no-files-found: error

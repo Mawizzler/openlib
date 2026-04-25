@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import type { OpacSearchFailureKind } from '@/src/domain/models/opac';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { SearchFlowService } from '@/src/application/services/opac/SearchFlowService';
 import { normalizeProviderBaseUrl } from './provider-url-normalization';
@@ -46,7 +47,10 @@ type ProviderStatus = {
   api: string | null;
   baseUrl: string | null;
   status: 'working' | 'partial' | 'failing';
+  classification?: 'usable_records' | 'deterministic_no_records';
   reason?: string;
+  searchFailureKind?: OpacSearchFailureKind;
+  searchFailureMessage?: string;
   normalizationReasons?: string[];
   rewrittenBaseUrl?: boolean;
   rewriteFromHost?: string;
@@ -56,6 +60,16 @@ type ProviderStatus = {
   missingFields?: string[];
   checkedAt: string;
   recordsCount?: number;
+};
+
+type ProbeResult = {
+  ok: boolean;
+  elapsedMs: number;
+  reason: string;
+  classification?: 'usable_records' | 'deterministic_no_records';
+  recordsCount?: number;
+  failureKind?: OpacSearchFailureKind;
+  failureMessage?: string;
 };
 
 const timeoutMs = Number(process.env.PROVIDER_TEST_TIMEOUT_MS ?? '12000');
@@ -104,7 +118,7 @@ const withTimeout = async <T>(promise: Promise<T>, timeout: number): Promise<T> 
   }
 };
 
-const probeUsableSearch = async (provider: OpacappNormalizedProvider) => {
+const probeUsableSearch = async (provider: OpacappNormalizedProvider): Promise<ProbeResult> => {
   const service = new SearchFlowService();
   const started = Date.now();
   try {
@@ -116,10 +130,23 @@ const probeUsableSearch = async (provider: OpacappNormalizedProvider) => {
     );
     const elapsedMs = Date.now() - started;
     const recordsCount = result.records.length;
+    const failure = result.diagnostics?.failure;
+    if (failure) {
+      const detail = failure.message ? `: ${failure.message}` : '';
+      return {
+        ok: false,
+        elapsedMs,
+        recordsCount,
+        failureKind: failure.kind,
+        failureMessage: failure.message,
+        reason: `Search failure (${failure.kind})${detail}`,
+      };
+    }
     if (recordsCount > 0) {
       return {
         ok: true,
         elapsedMs,
+        classification: 'usable_records',
         recordsCount,
         reason: `Usable search returned ${recordsCount} records for query "${testQuery}"`,
       };
@@ -127,8 +154,9 @@ const probeUsableSearch = async (provider: OpacappNormalizedProvider) => {
     return {
       ok: false,
       elapsedMs,
+      classification: 'deterministic_no_records',
       recordsCount,
-      reason: `No usable records for query "${testQuery}"`,
+      reason: 'deterministic_no_records',
     };
   } catch (error) {
     return {
@@ -299,7 +327,10 @@ const run = async () => {
         api: provider.api ?? null,
         baseUrl: normalizedUrl,
         status: 'failing',
+        classification: probe.classification,
         reason: probe.reason,
+        searchFailureKind: probe.failureKind,
+        searchFailureMessage: probe.failureMessage,
         normalizationReasons: normalization.reasons,
         rewrittenBaseUrl: normalization.rewritten,
         rewriteFromHost: normalization.rewriteFromHost,
@@ -316,6 +347,7 @@ const run = async () => {
       api: provider.api ?? null,
       baseUrl: normalizedUrl,
       status: 'working',
+      classification: probe.classification,
       normalizationReasons: normalization.reasons,
       rewrittenBaseUrl: normalization.rewritten,
       rewriteFromHost: normalization.rewriteFromHost,
@@ -333,12 +365,17 @@ const run = async () => {
     partial: statuses.filter((status) => status.status === 'partial').length,
     failing: statuses.filter((status) => status.status === 'failing').length,
   };
+  const classificationTotals = {
+    usable_records: statuses.filter((status) => status.classification === 'usable_records').length,
+    deterministic_no_records: statuses.filter((status) => status.classification === 'deterministic_no_records').length,
+  };
 
   await mkdir(OUTPUT_DIR, { recursive: true });
 
   const payload = {
     generatedAt,
     totals,
+    classificationTotals,
     timeoutMs,
     concurrency,
     testQuery,
