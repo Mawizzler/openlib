@@ -197,7 +197,17 @@ export class AdisAdapter implements LibrarySystemAdapter {
 
   private pathnameFamily(url: string): string | null {
     try {
-      return new URL(url).pathname.replace(/\/+$/, '').toLowerCase();
+      const parsed = new URL(url);
+      const pathname = parsed.pathname.replace(/\/+$/, '').toLowerCase();
+      if (String(this.provider.id) !== '9023') {
+        return pathname;
+      }
+
+      const service = parsed.searchParams.get('service') ?? '';
+      const searchMask = parsed.searchParams.get('searchMask') ?? '';
+      const xsltDb = parsed.searchParams.get('XSLT_DB') ?? '';
+      const sp = parsed.searchParams.getAll('sp').join('|');
+      return `${pathname}?service=${service}&searchMask=${searchMask}&XSLT_DB=${xsltDb}&sp=${sp}`;
     } catch {
       return null;
     }
