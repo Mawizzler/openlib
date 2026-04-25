@@ -122,6 +122,21 @@ const run = async () => {
   const adisHttpRoutes = routeUrls('adis', 'http://catalog.example.org/opac/search.aspx');
   assert.equal(adisHttpRoutes.length, 16);
   assert.ok(adisHttpRoutes.every((url) => url.startsWith('http://')));
+  const adisProvider9023Routes = routeUrls('adis', 'https://catalog.example.org/aDISWeb/app', '9023');
+  assert.ok(
+    adisProvider9023Routes.every((url) => new URL(url).pathname.startsWith('/aDISWeb/app/')),
+    'expected provider 9023 ADIS routes to preserve /aDISWeb/app base path',
+  );
+  assert.equal(
+    adisProvider9023Routes[0],
+    'https://catalog.example.org/aDISWeb/app/search.json?q=climate&page=2&limit=20',
+  );
+  const adisNon9023Routes = routeUrls('adis', 'https://catalog.example.org/aDISWeb/app', '9010');
+  assert.ok(
+    adisNon9023Routes.every((url) => !new URL(url).pathname.startsWith('/aDISWeb/app/')),
+    'expected non-9023 ADIS routes to keep existing root-relative behavior',
+  );
+  assert.equal(adisNon9023Routes[0], 'https://catalog.example.org/search.json?q=climate&page=2&limit=20');
 
   const kohaHttpRoutes = routeUrls('koha', 'http://catalog.example.org/opac/search.aspx');
   assert.equal(kohaHttpRoutes.length, 3);
