@@ -16,6 +16,10 @@ import type {
 } from '@/src/domain/models/opac';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { parseAdisSearchResults } from '@/src/infrastructure/opac/parsers/adis/parseAdisSearchResults';
+import {
+  buildAdapterFallbackRoutes,
+  isHttp404Error,
+} from '@/src/infrastructure/opac/transport/adapterFallbackRoutes';
 import { fetchTextWithRetry } from '@/src/infrastructure/opac/transport/fetchWithRetry';
 import { normalizeProviderBaseUrl } from '@/src/infrastructure/opac/transport/normalizeProviderBaseUrl';
 
@@ -154,35 +158,28 @@ export class AdisAdapter implements LibrarySystemAdapter {
     ).replace(/\/+$/, '');
   }
 
-  private buildCandidateSearchUrls(query: string, page: number) {
-    const baseUrl = this.normalizeBaseUrl();
-    const params = [
-      { q: query, page: String(page), limit: String(DEFAULT_PAGE_SIZE) },
-      { query, page: String(page), limit: String(DEFAULT_PAGE_SIZE) },
-      { lookfor: query, page: String(page), limit: String(DEFAULT_PAGE_SIZE) },
-      { search: query, page: String(page), limit: String(DEFAULT_PAGE_SIZE) },
-    ];
-    const pathnames = ['/search.json', '/search', '/api/search', '/Search/Results'];
-
-    return pathnames.flatMap((pathname) =>
-      params.map((entry) => {
-        const url = new URL(`${baseUrl}${pathname}`);
-        Object.entries(entry).forEach(([key, value]) => url.searchParams.set(key, value));
-        return url.toString();
-      }),
-    );
-  }
-
   private async fetchSearchPayload(query: string, page: number): Promise<FetchCandidateResult> {
     const attempts: string[] = [];
+    const baseUrl = this.normalizeBaseUrl();
+    const { candidates } = buildAdapterFallbackRoutes({
+      system: this.system,
+      baseUrl,
+      query,
+      page,
+      pageSize: DEFAULT_PAGE_SIZE,
+      providerId: this.provider.id,
+    });
 
-    for (const url of this.buildCandidateSearchUrls(query, page)) {
+    for (const candidate of candidates) {
       try {
-        const payload = await this.fetchCandidate(url);
-        return { url, payload };
+        const payload = await this.fetchCandidate(candidate.url);
+        return { url: candidate.url, payload };
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        attempts.push(`${url}: ${message}`);
+        attempts.push(`${candidate.url}: ${message}`);
+        if (!isHttp404Error(error)) {
+          throw error;
+        }
       }
     }
 

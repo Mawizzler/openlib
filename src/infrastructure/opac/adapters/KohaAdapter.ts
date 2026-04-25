@@ -13,6 +13,10 @@ import type {
 } from '@/src/domain/models/opac';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { parseKohaSearchResults } from '@/src/infrastructure/opac/parsers/koha/parseKohaSearchResults';
+import {
+  buildAdapterFallbackRoutes,
+  isHttp404Error,
+} from '@/src/infrastructure/opac/transport/adapterFallbackRoutes';
 import { fetchTextWithRetry } from '@/src/infrastructure/opac/transport/fetchWithRetry';
 import { normalizeProviderBaseUrl } from '@/src/infrastructure/opac/transport/normalizeProviderBaseUrl';
 
@@ -42,8 +46,7 @@ export class KohaAdapter implements LibrarySystemAdapter {
     const baseUrl = this.normalizeBaseUrl();
     let html: string;
     try {
-      const url = this.buildSearchUrl(baseUrl, query, page);
-      html = await this.fetchHtml(url);
+      html = await this.fetchSearchHtml(baseUrl, query, page);
     } catch (error) {
       console.warn('[KohaAdapter] search transport failed', error);
       return {
@@ -110,17 +113,27 @@ export class KohaAdapter implements LibrarySystemAdapter {
     ).replace(/\/+$/, '');
   }
 
-  private buildSearchUrl(baseUrl: string, query: string, page: number) {
-    const endpoint = new URL('/cgi-bin/koha/opac-search.pl', `${baseUrl}/`);
-    const params = new URLSearchParams({
-      q: query,
-      idx: 'kw',
-      count: String(DEFAULT_PAGE_SIZE),
-      offset: String(Math.max(0, page - 1) * DEFAULT_PAGE_SIZE),
-      sort_by: 'relevance',
+  private async fetchSearchHtml(baseUrl: string, query: string, page: number): Promise<string> {
+    const { candidates } = buildAdapterFallbackRoutes({
+      system: this.system,
+      baseUrl,
+      query,
+      page,
+      pageSize: DEFAULT_PAGE_SIZE,
+      providerId: this.provider.id,
     });
-    endpoint.search = params.toString();
-    return endpoint.toString();
+
+    for (const candidate of candidates) {
+      try {
+        return await this.fetchHtml(candidate.url);
+      } catch (error) {
+        if (!isHttp404Error(error)) {
+          throw error;
+        }
+      }
+    }
+
+    throw new Error('Koha search failed for all fallback routes with HTTP 404');
   }
 
   private async fetchHtml(url: string): Promise<string> {
