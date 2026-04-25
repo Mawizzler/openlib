@@ -43,6 +43,7 @@ const META_LANGUAGE_KEYS = ['dc.language', 'dcterms.language', 'language'];
 const META_DATE_KEYS = ['citation_publication_date', 'dc.date', 'dcterms.issued', 'dcterms.date'];
 const META_COVER_KEYS = ['og:image', 'twitter:image', 'citation_cover_url'];
 const WARMUP_PROVIDER_ID = '9051';
+const FINC_OPEN_COOKIE_PAIR = 'finc_open=1';
 
 const HTML_ENTITIES: Record<string, string> = {
   '&amp;': '&',
@@ -390,6 +391,10 @@ export class VuFindAdapter implements LibrarySystemAdapter {
     const firstResponse = await this.fetchHtmlResponse(url, this.buildRequestHeaders(url, false), session);
     if (firstResponse.status === 419) {
       if (session && this.isWarmupProvider() && this.provider.baseUrl) {
+        const challengeBody = await firstResponse.text();
+        if (this.isFincOpenChallengePage(challengeBody)) {
+          session.cookie = this.mergeCookies(session.cookie, [FINC_OPEN_COOKIE_PAIR]);
+        }
         await this.performWarmup(this.normalizeBaseUrl(this.provider.baseUrl), session);
       }
       const retryResponse = await this.fetchHtmlResponse(url, this.buildRequestHeaders(url, true), session);
@@ -510,6 +515,16 @@ export class VuFindAdapter implements LibrarySystemAdapter {
     return Array.from(merged.entries())
       .map(([key, value]) => `${key}=${value}`)
       .join('; ');
+  }
+
+  private isFincOpenChallengePage(html: string): boolean {
+    const normalized = html.toLowerCase();
+    return (
+      normalized.includes('finc_open') &&
+      normalized.includes('=1') &&
+      normalized.includes('document.cookie') &&
+      normalized.includes('location.reload')
+    );
   }
 
   private isAccountLoginSupported(): boolean {
