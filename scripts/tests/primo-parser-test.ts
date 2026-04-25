@@ -14,7 +14,7 @@ assert.equal(result.records[0]?.id, 'TN_cdi_proquest_journals_2540953012');
 assert.equal(result.records[0]?.title, 'Library discovery at scale');
 assert.deepEqual(result.records[0]?.authors, ['Jane Doe']);
 assert.equal(result.records[0]?.publisher, 'Open Library Press');
-assert.equal(result.records[0]?.year, '2024');
+assert.equal(result.records[0]?.publishedYear, 2024);
 assert.equal(result.records[0]?.format, 'article');
 assert.equal(result.records[0]?.language, 'eng');
 assert.equal(result.records[0]?.source, 'cdi_proquest_journals');

@@ -28,6 +28,11 @@ const supportedApis = new Set<string>([
   'open',
   'bibliotheca',
   'webopac.net',
+  'primo',
+  'adis',
+  'iopac',
+  'touchpoint',
+  'vufind',
 ]);
 
 type ProviderRegistry = {
