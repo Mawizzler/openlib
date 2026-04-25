@@ -41,6 +41,9 @@ const toPublishedYear = (value?: string) => {
   return match ? Number(match[1]) : undefined;
 };
 
+const normalizeBaseUrl = (baseUrl: string) =>
+  baseUrl.replace(/\/primo_library\/libweb(?:\/.*)?$/i, '').replace(/\/+$/, '');
+
 const toRecord = (doc: PrimoDoc, baseUrl: string): OpacBriefRecord | null => {
   const pnx = doc.pnx;
   if (!pnx) return null;
@@ -57,7 +60,11 @@ const toRecord = (doc: PrimoDoc, baseUrl: string): OpacBriefRecord | null => {
   const sourceId = normalizeArrayValue(pnx.control?.sourceid);
 
   const directLink = normalizeArrayValue(pnx.links?.linktorsrc);
-  const fallbackDetail = `${baseUrl}/primo_library/libweb/action/display.do?doc=${encodeURIComponent(recordId)}`;
+  const fallbackDetailUrl = new URL(
+    '/primo_library/libweb/action/display.do',
+    `${normalizeBaseUrl(baseUrl)}/`,
+  );
+  fallbackDetailUrl.searchParams.set('doc', recordId);
 
   return {
     id: recordId,
@@ -68,27 +75,29 @@ const toRecord = (doc: PrimoDoc, baseUrl: string): OpacBriefRecord | null => {
     format: materialType,
     language,
     source: sourceId ?? 'primo',
-    detailUrl: directLink ?? fallbackDetail,
+    detailUrl: directLink ?? fallbackDetailUrl.toString(),
     availabilityLabel: undefined,
   };
 };
 
 export const parsePrimoSearchResults = (payload: string, baseUrl: string) => {
-  let decoded: PrimoResponse | null = null;
-
   try {
-    decoded = JSON.parse(payload) as PrimoResponse;
-  } catch {
-    return { total: 0, records: [] as OpacBriefRecord[] };
+    const decoded = JSON.parse(payload) as PrimoResponse;
+
+    const docs = Array.isArray(decoded.docs) ? decoded.docs : [];
+    const records = docs
+      .map((doc) => toRecord(doc, baseUrl))
+      .filter((record): record is OpacBriefRecord => Boolean(record));
+
+    const total = typeof decoded.info?.total === 'number' ? decoded.info.total : records.length;
+
+    return {
+      total,
+      records,
+    };
+  } catch (error) {
+    throw new Error(
+      error instanceof Error ? `Failed to parse Primo search results: ${error.message}` : 'Failed to parse Primo search results.',
+    );
   }
-
-  const docs = Array.isArray(decoded.docs) ? decoded.docs : [];
-  const records = docs.map((doc) => toRecord(doc, baseUrl)).filter((record): record is OpacBriefRecord => Boolean(record));
-
-  const total = typeof decoded.info?.total === 'number' ? decoded.info.total : records.length;
-
-  return {
-    total,
-    records,
-  };
 };

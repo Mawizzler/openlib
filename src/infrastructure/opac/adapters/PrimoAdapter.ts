@@ -5,12 +5,22 @@ import type {
   LibraryAccountSnapshotResult,
   LibrarySystemSearchInput,
 } from '@/src/application/ports/LibrarySystemAdapter';
-import type { OpacAvailability, OpacRecord, OpacSearchResult } from '@/src/domain/models/opac';
+import type {
+  OpacAvailability,
+  OpacRecord,
+  OpacSearchFailureKind,
+  OpacSearchResult,
+} from '@/src/domain/models/opac';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { parsePrimoSearchResults } from '@/src/infrastructure/opac/parsers/primo/parsePrimoSearchResults';
 
 const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_TIMEOUT_MS = 8000;
+
+const buildFailure = (kind: OpacSearchFailureKind, error: unknown) => ({
+  kind,
+  message: error instanceof Error ? error.message : 'Unknown search error.',
+});
 
 export class PrimoAdapter implements LibrarySystemAdapter {
   readonly system = 'primo';
@@ -28,11 +38,24 @@ export class PrimoAdapter implements LibrarySystemAdapter {
       return { total: 0, page, pageSize: DEFAULT_PAGE_SIZE, records: [] };
     }
 
+    const baseUrl = this.normalizeBaseUrl();
+    let payload: string;
     try {
       const url = this.buildSearchUrl(query, page);
-      const payload = await this.fetchJson(url);
-      const parsed = parsePrimoSearchResults(payload, this.normalizeBaseUrl());
+      payload = await this.fetchJson(url);
+    } catch (error) {
+      console.warn('[PrimoAdapter] search transport failed', error);
+      return {
+        total: 0,
+        page,
+        pageSize: DEFAULT_PAGE_SIZE,
+        records: [],
+        diagnostics: { failure: buildFailure('transport', error) },
+      };
+    }
 
+    try {
+      const parsed = parsePrimoSearchResults(payload, baseUrl);
       return {
         total: parsed.total ?? parsed.records.length,
         page,
@@ -40,8 +63,14 @@ export class PrimoAdapter implements LibrarySystemAdapter {
         records: parsed.records,
       };
     } catch (error) {
-      console.warn('[PrimoAdapter] search failed', error);
-      return { total: 0, page, pageSize: DEFAULT_PAGE_SIZE, records: [] };
+      console.warn('[PrimoAdapter] search parse failed', error);
+      return {
+        total: 0,
+        page,
+        pageSize: DEFAULT_PAGE_SIZE,
+        records: [],
+        diagnostics: { failure: buildFailure('parser', error) },
+      };
     }
   }
 
@@ -74,11 +103,11 @@ export class PrimoAdapter implements LibrarySystemAdapter {
 
   private normalizeBaseUrl() {
     const candidate = this.provider.baseUrl?.trim() || 'https://example.invalid';
-    return candidate.replace(/\/+$/, '');
+    return candidate.replace(/\/primo_library\/libweb(?:\/.*)?$/i, '').replace(/\/+$/, '');
   }
 
   private buildSearchUrl(query: string, page: number) {
-    const endpoint = `${this.normalizeBaseUrl()}/primo_library/libweb/action/search.do`;
+    const endpoint = new URL('/primo_library/libweb/action/search.do', `${this.normalizeBaseUrl()}/`);
     const params = new URLSearchParams({
       fn: 'search',
       mode: 'Basic',
@@ -89,7 +118,8 @@ export class PrimoAdapter implements LibrarySystemAdapter {
       bulkSize: String(DEFAULT_PAGE_SIZE),
       ['vl(freeText0)']: query,
     });
-    return `${endpoint}?${params.toString()}`;
+    endpoint.search = params.toString();
+    return endpoint.toString();
   }
 
   private async fetchJson(url: string): Promise<string> {

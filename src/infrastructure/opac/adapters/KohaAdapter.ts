@@ -5,12 +5,22 @@ import type {
   LibraryAccountSnapshotResult,
   LibrarySystemSearchInput,
 } from '@/src/application/ports/LibrarySystemAdapter';
-import type { OpacAvailability, OpacRecord, OpacSearchResult } from '@/src/domain/models/opac';
+import type {
+  OpacAvailability,
+  OpacRecord,
+  OpacSearchFailureKind,
+  OpacSearchResult,
+} from '@/src/domain/models/opac';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { parseKohaSearchResults } from '@/src/infrastructure/opac/parsers/koha/parseKohaSearchResults';
 
 const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_TIMEOUT_MS = 8000;
+
+const buildFailure = (kind: OpacSearchFailureKind, error: unknown) => ({
+  kind,
+  message: error instanceof Error ? error.message : 'Unknown search error.',
+});
 
 export class KohaAdapter implements LibrarySystemAdapter {
   readonly system = 'koha';
@@ -28,12 +38,24 @@ export class KohaAdapter implements LibrarySystemAdapter {
       return { total: 0, page, pageSize: DEFAULT_PAGE_SIZE, records: [] };
     }
 
+    const baseUrl = this.normalizeBaseUrl();
+    let html: string;
     try {
-      const baseUrl = this.normalizeBaseUrl();
       const url = this.buildSearchUrl(baseUrl, query, page);
-      const html = await this.fetchHtml(url);
-      const parsed = parseKohaSearchResults(html, baseUrl);
+      html = await this.fetchHtml(url);
+    } catch (error) {
+      console.warn('[KohaAdapter] search transport failed', error);
+      return {
+        total: 0,
+        page,
+        pageSize: DEFAULT_PAGE_SIZE,
+        records: [],
+        diagnostics: { failure: buildFailure('transport', error) },
+      };
+    }
 
+    try {
+      const parsed = parseKohaSearchResults(html, baseUrl);
       return {
         total: parsed.total ?? parsed.records.length,
         page,
@@ -41,8 +63,14 @@ export class KohaAdapter implements LibrarySystemAdapter {
         records: parsed.records,
       };
     } catch (error) {
-      console.warn('[KohaAdapter] search failed', error);
-      return { total: 0, page, pageSize: DEFAULT_PAGE_SIZE, records: [] };
+      console.warn('[KohaAdapter] search parse failed', error);
+      return {
+        total: 0,
+        page,
+        pageSize: DEFAULT_PAGE_SIZE,
+        records: [],
+        diagnostics: { failure: buildFailure('parser', error) },
+      };
     }
   }
 
@@ -74,10 +102,14 @@ export class KohaAdapter implements LibrarySystemAdapter {
   }
 
   private normalizeBaseUrl() {
-    return (this.provider.baseUrl ?? 'https://example.invalid').trim().replace(/\/+$/, '');
+    return (this.provider.baseUrl ?? 'https://example.invalid')
+      .trim()
+      .replace(/\/cgi-bin\/koha(?:\/.*)?$/i, '')
+      .replace(/\/+$/, '');
   }
 
   private buildSearchUrl(baseUrl: string, query: string, page: number) {
+    const endpoint = new URL('/cgi-bin/koha/opac-search.pl', `${baseUrl}/`);
     const params = new URLSearchParams({
       q: query,
       idx: 'kw',
@@ -85,7 +117,8 @@ export class KohaAdapter implements LibrarySystemAdapter {
       offset: String(Math.max(0, page - 1) * DEFAULT_PAGE_SIZE),
       sort_by: 'relevance',
     });
-    return `${baseUrl}/cgi-bin/koha/opac-search.pl?${params.toString()}`;
+    endpoint.search = params.toString();
+    return endpoint.toString();
   }
 
   private async fetchHtml(url: string): Promise<string> {

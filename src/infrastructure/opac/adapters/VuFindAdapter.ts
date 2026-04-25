@@ -10,6 +10,7 @@ import type {
 import type {
   OpacAvailability,
   OpacRecord,
+  OpacSearchFailureKind,
   OpacSearchResult,
 } from '@/src/domain/models/opac';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
@@ -121,6 +122,11 @@ const resolveUrl = (baseUrl: string, href: string) => {
   }
 };
 
+const buildFailure = (kind: OpacSearchFailureKind, error: unknown) => ({
+  kind,
+  message: error instanceof Error ? error.message : 'Unknown search error.',
+});
+
 export class VuFindAdapter implements LibrarySystemAdapter {
   readonly system = 'vufind';
   private provider: OpacappNormalizedProvider;
@@ -162,6 +168,7 @@ export class VuFindAdapter implements LibrarySystemAdapter {
         page,
         pageSize,
         records: [],
+        diagnostics: { failure: buildFailure('transport', error) },
       };
     }
   }
@@ -354,6 +361,10 @@ export class VuFindAdapter implements LibrarySystemAdapter {
         redirect: 'follow',
         signal: controller.signal,
       });
+
+      if (!response.ok) {
+        throw new Error(`VuFind request failed with HTTP ${response.status}`);
+      }
 
       return await response.text();
     } finally {
