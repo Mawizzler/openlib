@@ -280,7 +280,10 @@ const run = async () => {
 
       if (calls.length === 2) {
         assert.equal(pathname, '/Search/Results');
-        return new Response('expired', { status: 419 });
+        return new Response(
+          '<script>document.cookie="finc_open=1; path=/";location.reload();</script>',
+          { status: 419 },
+        );
       }
 
       if (calls.length === 3) {
@@ -308,8 +311,8 @@ const run = async () => {
       );
       assert.equal(calls[0].cookie, null);
       assert.equal(calls[1].cookie, 'SESSION=initial');
-      assert.equal(calls[2].cookie, 'SESSION=initial');
-      assert.equal(calls[3].cookie, 'SESSION=refreshed');
+      assert.equal(calls[2].cookie, 'SESSION=initial; finc_open=1');
+      assert.equal(calls[3].cookie, 'SESSION=refreshed; finc_open=1');
       assert.equal(calls[0].acceptLanguage, 'en-US,en;q=0.9');
       assert.equal(calls[1].acceptLanguage, 'en-US,en;q=0.9');
       assert.equal(calls[2].acceptLanguage, 'en-US,en;q=0.9');
