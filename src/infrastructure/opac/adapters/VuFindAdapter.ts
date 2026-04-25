@@ -36,6 +36,7 @@ const META_PUBLISHER_KEYS = ['citation_publisher', 'dc.publisher', 'dcterms.publ
 const META_LANGUAGE_KEYS = ['dc.language', 'dcterms.language', 'language'];
 const META_DATE_KEYS = ['citation_publication_date', 'dc.date', 'dcterms.issued', 'dcterms.date'];
 const META_COVER_KEYS = ['og:image', 'twitter:image', 'citation_cover_url'];
+const WARMUP_PROVIDER_ID = '9051';
 
 const HTML_ENTITIES: Record<string, string> = {
   '&amp;': '&',
@@ -138,6 +139,10 @@ const buildFailure = (kind: OpacSearchFailureKind, error: unknown) => ({
   message: error instanceof Error ? error.message : 'Unknown search error.',
 });
 
+type SessionState = {
+  cookie?: string;
+};
+
 export class VuFindAdapter implements LibrarySystemAdapter {
   readonly system = 'vufind';
   private provider: OpacappNormalizedProvider;
@@ -163,7 +168,11 @@ export class VuFindAdapter implements LibrarySystemAdapter {
     try {
       const baseUrl = this.normalizeBaseUrl(this.provider.baseUrl);
       const searchUrl = this.buildSearchUrl(baseUrl, input);
-      const searchHtml = await this.fetchHtml(searchUrl);
+      const session: SessionState | undefined = this.isWarmupProvider() ? {} : undefined;
+      if (session) {
+        await this.performWarmup(baseUrl, session);
+      }
+      const searchHtml = await this.fetchHtml(searchUrl, session);
       const parsed = parseVuFindSearchResults(searchHtml, baseUrl);
 
       return {
@@ -358,10 +367,25 @@ export class VuFindAdapter implements LibrarySystemAdapter {
     return `${key}:${safeValue}`;
   }
 
-  private async fetchHtml(url: string): Promise<string> {
-    const firstResponse = await this.fetchHtmlResponse(url, DEFAULT_HEADERS);
+  private isWarmupProvider(): boolean {
+    return this.provider.id === WARMUP_PROVIDER_ID;
+  }
+
+  private async performWarmup(baseUrl: string, session: SessionState): Promise<void> {
+    try {
+      await this.fetchHtmlResponse(`${baseUrl}/`, DEFAULT_HEADERS, session);
+    } catch {
+      // Warmup is best effort; continue search flow even if this preflight fails.
+    }
+  }
+
+  private async fetchHtml(url: string, session?: SessionState): Promise<string> {
+    const firstResponse = await this.fetchHtmlResponse(url, DEFAULT_HEADERS, session);
     if (firstResponse.status === 419) {
-      const retryResponse = await this.fetchHtmlResponse(url, BROWSER_PROFILE_HEADERS);
+      if (session && this.isWarmupProvider() && this.provider.baseUrl) {
+        await this.performWarmup(this.normalizeBaseUrl(this.provider.baseUrl), session);
+      }
+      const retryResponse = await this.fetchHtmlResponse(url, BROWSER_PROFILE_HEADERS, session);
       if (!retryResponse.ok) {
         throw new Error(`VuFind request failed with HTTP ${retryResponse.status}`);
       }
@@ -375,20 +399,92 @@ export class VuFindAdapter implements LibrarySystemAdapter {
     return await firstResponse.text();
   }
 
-  private async fetchHtmlResponse(url: string, headers: Record<string, string>): Promise<Response> {
+  private async fetchHtmlResponse(
+    url: string,
+    headers: Record<string, string>,
+    session?: SessionState,
+  ): Promise<Response> {
     const controller = new AbortController();
     const handle = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
     try {
-      return await fetch(url, {
+      const response = await fetch(url, {
         method: 'GET',
-        headers,
+        headers: {
+          ...headers,
+          ...(session?.cookie ? { Cookie: session.cookie } : {}),
+        },
         redirect: 'follow',
         signal: controller.signal,
       });
+      if (session) {
+        this.captureCookies(response, session);
+      }
+      return response;
     } finally {
       clearTimeout(handle);
     }
+  }
+
+  private captureCookies(response: Response, session: SessionState) {
+    try {
+      const headerValues = [
+        response.headers.get('set-cookie'),
+        response.headers.get('x-openlib-proxy-set-cookie'),
+      ].filter((value): value is string => Boolean(value));
+      if (headerValues.length === 0) return;
+
+      const incomingCookies = headerValues.flatMap((value) => this.extractCookiePairs(value));
+      if (incomingCookies.length === 0) return;
+
+      session.cookie = this.mergeCookies(session.cookie, incomingCookies);
+    } catch {
+      // Ignore cookie parsing errors and continue with transport fallback behavior.
+    }
+  }
+
+  private extractCookiePairs(setCookieHeader: string): string[] {
+    const pairs: string[] = [];
+    const pattern = /(?:^|,)\s*([^=;,\s]+)=([^;,\r\n]*)/g;
+    let match: RegExpExecArray | null = null;
+    while ((match = pattern.exec(setCookieHeader)) !== null) {
+      pairs.push(`${match[1]}=${match[2]}`);
+    }
+    return pairs;
+  }
+
+  private mergeCookies(currentCookieHeader: string | undefined, incomingPairs: string[]): string {
+    const merged = new Map<string, string>();
+
+    if (currentCookieHeader) {
+      currentCookieHeader
+        .split(';')
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .forEach((part) => {
+          const separatorIndex = part.indexOf('=');
+          if (separatorIndex <= 0) return;
+          const key = part.slice(0, separatorIndex).trim();
+          const value = part.slice(separatorIndex + 1).trim();
+          if (key && value) {
+            merged.set(key, value);
+          }
+        });
+    }
+
+    incomingPairs.forEach((pair) => {
+      const separatorIndex = pair.indexOf('=');
+      if (separatorIndex <= 0) return;
+      const key = pair.slice(0, separatorIndex).trim();
+      const value = pair.slice(separatorIndex + 1).trim();
+      if (key && value) {
+        merged.set(key, value);
+      }
+    });
+
+    return Array.from(merged.entries())
+      .map(([key, value]) => `${key}=${value}`)
+      .join('; ');
   }
 
   private isAccountLoginSupported(): boolean {
