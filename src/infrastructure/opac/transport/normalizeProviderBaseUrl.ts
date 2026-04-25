@@ -67,6 +67,21 @@ const stripApiPath = (url: URL, api: string | null, reasons: string[]) => {
   reasons.push(`stripped ${api} API endpoint path from base URL`);
 };
 
+const hardenLeipzigSisisBasePath = (url: URL, providerId: string | undefined, reasons: string[]) => {
+  if (String(providerId) !== '8714' || url.hostname.toLowerCase() !== 'bibliothekskatalog.leipzig.de') {
+    return;
+  }
+
+  if (!/^\/(?:webOPACClient\/)?(?:start|search|hitList|singleHit)\.do$/i.test(url.pathname)) {
+    return;
+  }
+
+  url.pathname = '/webOPACClient';
+  url.search = '';
+  url.hash = '';
+  reasons.push('preserved Leipzig SISIS /webOPACClient base path');
+};
+
 export const normalizeProviderBaseUrl = (
   rawBaseUrl: string,
   options: ProviderUrlNormalizationOptions = {},
@@ -121,6 +136,7 @@ export const normalizeProviderBaseUrl = (
     reasons.push('non-deterministic LMS/CMS-like host; no rewrite applied');
   }
 
+  hardenLeipzigSisisBasePath(parsed, options.providerId, reasons);
   stripApiPath(parsed, normalizeApi(options.api), reasons);
 
   const normalizedUrl = parsed.toString();

@@ -104,23 +104,26 @@ const webOpacNetRoutes = (input: AdapterFallbackRouteInput): AdapterFallbackRout
 
 const sisisRoutes = (input: AdapterFallbackRouteInput): AdapterFallbackRouteCandidate[] => {
   const { baseUrl, query, providerId, system } = input;
-  const submitRoute = route(system, 'sisis-submit', baseUrl, '/search.do', {
+  const isLeipzig = String(providerId) === '8714';
+  const searchPath = isLeipzig ? 'search.do' : '/search.do';
+  const startPath = isLeipzig ? 'start.do' : '/start.do';
+  const submitRoute = route(system, 'sisis-submit', baseUrl, searchPath, {
     methodToCall: 'submit',
     'searchCategories[0]': 'all',
     'searchString[0]': query,
   });
-  const conQueryRoute = route(system, 'sisis-conquery', baseUrl, '/start.do', {
+  const conQueryRoute = route(system, 'sisis-conquery', baseUrl, startPath, {
     sourceid: 'ConQuery',
     Login: 'stabi00',
     Query: `-1 = "${query}"`,
   });
-  const quickSearchRoute = route(system, 'sisis-quick-search', baseUrl, '/search.do', {
+  const quickSearchRoute = route(system, 'sisis-quick-search', baseUrl, searchPath, {
     methodToCall: 'quickSearch',
     Kateg: 'all',
     searchString: query,
   });
 
-  return String(providerId) === '8714'
+  return isLeipzig
     ? [conQueryRoute, submitRoute, quickSearchRoute]
     : [submitRoute, quickSearchRoute, conQueryRoute];
 };

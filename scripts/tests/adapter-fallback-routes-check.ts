@@ -23,14 +23,18 @@ const provider = (api: string, baseUrl = 'https://catalog.example.org/opac'): Op
   },
 });
 
-const routeUrls = (system: Parameters<typeof buildAdapterFallbackRoutes>[0]['system']) =>
+const routeUrls = (
+  system: Parameters<typeof buildAdapterFallbackRoutes>[0]['system'],
+  baseUrl = 'https://catalog.example.org/opac/search.aspx',
+  providerId = system === 'sisis' ? '8714' : `${system}-test`,
+) =>
   buildAdapterFallbackRoutes({
     system,
-    baseUrl: 'https://catalog.example.org/opac/search.aspx',
+    baseUrl,
     query: 'climate',
     page: 2,
     pageSize: 20,
-    providerId: system === 'sisis' ? '8714' : `${system}-test`,
+    providerId,
   }).candidates.map((candidate) => candidate.url);
 
 const run = async () => {
@@ -63,11 +67,15 @@ const run = async () => {
     'https://catalog.example.org/search.aspx?AKT_VALUE=climate&Seite=2',
   ]);
 
+  const leipzigSisisRoutes = routeUrls('sisis', 'https://bibliothekskatalog.leipzig.de/webOPACClient', '8714');
   assert.equal(
-    routeUrls('sisis')[0],
-    'https://catalog.example.org/start.do?sourceid=ConQuery&Login=stabi00&Query=-1+%3D+%22climate%22',
+    leipzigSisisRoutes[0],
+    'https://bibliothekskatalog.leipzig.de/webOPACClient/start.do?sourceid=ConQuery&Login=stabi00&Query=-1+%3D+%22climate%22',
   );
-  assert.ok(routeUrls('sisis').some((url) => url.includes('/search.do?methodToCall=submit')));
+  assert.ok(leipzigSisisRoutes.some((url) => url.includes('/webOPACClient/search.do?methodToCall=submit')));
+
+  const genericSisisRoutes = routeUrls('sisis', 'https://catalog.example.org/opac/search.aspx', 'sisis-test');
+  assert.equal(genericSisisRoutes[0], 'https://catalog.example.org/search.do?methodToCall=submit&searchCategories%5B0%5D=all&searchString%5B0%5D=climate');
   assert.ok(routeUrls('primo')[0].includes('/primo_library/libweb/action/search.do?fn=search'));
   assert.ok(routeUrls('adis').some((url) => url.includes('/api/search?')));
   assert.ok(routeUrls('koha')[0].includes('/cgi-bin/koha/opac-search.pl?q=climate&idx=kw'));
