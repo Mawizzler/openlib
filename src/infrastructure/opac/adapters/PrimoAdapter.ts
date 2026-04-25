@@ -13,9 +13,10 @@ import type {
 } from '@/src/domain/models/opac';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { parsePrimoSearchResults } from '@/src/infrastructure/opac/parsers/primo/parsePrimoSearchResults';
+import { fetchTextWithRetry } from '@/src/infrastructure/opac/transport/fetchWithRetry';
+import { normalizeProviderBaseUrl } from '@/src/infrastructure/opac/transport/normalizeProviderBaseUrl';
 
 const DEFAULT_PAGE_SIZE = 20;
-const DEFAULT_TIMEOUT_MS = 8000;
 
 const buildFailure = (kind: OpacSearchFailureKind, error: unknown) => ({
   kind,
@@ -103,7 +104,10 @@ export class PrimoAdapter implements LibrarySystemAdapter {
 
   private normalizeBaseUrl() {
     const candidate = this.provider.baseUrl?.trim() || 'https://example.invalid';
-    return candidate.replace(/\/primo_library\/libweb(?:\/.*)?$/i, '').replace(/\/+$/, '');
+    return (
+      normalizeProviderBaseUrl(candidate, { api: this.system, providerId: this.provider.id }).normalizedUrl ??
+      candidate
+    ).replace(/\/+$/, '');
   }
 
   private buildSearchUrl(query: string, page: number) {
@@ -123,25 +127,11 @@ export class PrimoAdapter implements LibrarySystemAdapter {
   }
 
   private async fetchJson(url: string): Promise<string> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-
-    try {
-      const response = await fetch(url, {
-        headers: {
-          Accept: 'application/json,text/plain;q=0.9,*/*;q=0.8',
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Primo search request failed with HTTP ${response.status}`);
-      }
-
-      return await response.text();
-    } finally {
-      clearTimeout(timeout);
-    }
+    return await fetchTextWithRetry(url, {
+      headers: {
+        Accept: 'application/json,text/plain;q=0.9,*/*;q=0.8',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    });
   }
 }

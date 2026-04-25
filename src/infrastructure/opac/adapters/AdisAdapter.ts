@@ -16,9 +16,10 @@ import type {
 } from '@/src/domain/models/opac';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { parseAdisSearchResults } from '@/src/infrastructure/opac/parsers/adis/parseAdisSearchResults';
+import { fetchTextWithRetry } from '@/src/infrastructure/opac/transport/fetchWithRetry';
+import { normalizeProviderBaseUrl } from '@/src/infrastructure/opac/transport/normalizeProviderBaseUrl';
 
 const DEFAULT_PAGE_SIZE = 20;
-const DEFAULT_TIMEOUT_MS = 8000;
 
 type AdisSearchPayload = {
   total?: unknown;
@@ -146,7 +147,11 @@ export class AdisAdapter implements LibrarySystemAdapter {
   }
 
   private normalizeBaseUrl() {
-    return (this.provider.baseUrl ?? '').trim().replace(/\/+$/, '');
+    const candidate = (this.provider.baseUrl ?? '').trim();
+    return (
+      normalizeProviderBaseUrl(candidate, { api: this.system, providerId: this.provider.id }).normalizedUrl ??
+      candidate
+    ).replace(/\/+$/, '');
   }
 
   private buildCandidateSearchUrls(query: string, page: number) {
@@ -185,32 +190,18 @@ export class AdisAdapter implements LibrarySystemAdapter {
   }
 
   private async fetchCandidate(url: string): Promise<AdisSearchPayload> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-
-    try {
-      const response = await fetch(url, {
-        headers: {
-          Accept: 'application/json,text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
-          'User-Agent': 'openlib-adis-adapter',
-        },
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const body = await response.text();
-      const payload = this.extractPayload(body);
-      if (!payload) {
-        throw new Error('response body did not contain an ADIS-like search payload');
-      }
-
-      return payload;
-    } finally {
-      clearTimeout(timeout);
+    const body = await fetchTextWithRetry(url, {
+      headers: {
+        Accept: 'application/json,text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+        'User-Agent': 'openlib-adis-adapter',
+      },
+    });
+    const payload = this.extractPayload(body);
+    if (!payload) {
+      throw new Error('response body did not contain an ADIS-like search payload');
     }
+
+    return payload;
   }
 
   private extractPayload(body: string): AdisSearchPayload | null {

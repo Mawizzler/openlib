@@ -13,9 +13,10 @@ import type {
 } from '@/src/domain/models/opac';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { parseKohaSearchResults } from '@/src/infrastructure/opac/parsers/koha/parseKohaSearchResults';
+import { fetchTextWithRetry } from '@/src/infrastructure/opac/transport/fetchWithRetry';
+import { normalizeProviderBaseUrl } from '@/src/infrastructure/opac/transport/normalizeProviderBaseUrl';
 
 const DEFAULT_PAGE_SIZE = 20;
-const DEFAULT_TIMEOUT_MS = 8000;
 
 const buildFailure = (kind: OpacSearchFailureKind, error: unknown) => ({
   kind,
@@ -102,10 +103,11 @@ export class KohaAdapter implements LibrarySystemAdapter {
   }
 
   private normalizeBaseUrl() {
-    return (this.provider.baseUrl ?? 'https://example.invalid')
-      .trim()
-      .replace(/\/cgi-bin\/koha(?:\/.*)?$/i, '')
-      .replace(/\/+$/, '');
+    const candidate = (this.provider.baseUrl ?? 'https://example.invalid').trim();
+    return (
+      normalizeProviderBaseUrl(candidate, { api: this.system, providerId: this.provider.id }).normalizedUrl ??
+      candidate
+    ).replace(/\/+$/, '');
   }
 
   private buildSearchUrl(baseUrl: string, query: string, page: number) {
@@ -122,24 +124,10 @@ export class KohaAdapter implements LibrarySystemAdapter {
   }
 
   private async fetchHtml(url: string): Promise<string> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-
-    try {
-      const response = await fetch(url, {
-        headers: {
-          Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
-        },
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Koha search request failed with HTTP ${response.status}`);
-      }
-
-      return await response.text();
-    } finally {
-      clearTimeout(timeout);
-    }
+    return await fetchTextWithRetry(url, {
+      headers: {
+        Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+      },
+    });
   }
 }

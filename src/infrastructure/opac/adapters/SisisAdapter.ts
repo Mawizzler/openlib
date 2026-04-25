@@ -10,10 +10,18 @@ import type {
 import type {
   OpacAvailability,
   OpacRecord,
+  OpacSearchFailureKind,
   OpacSearchResult,
 } from '@/src/domain/models/opac';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { parseSisisSearchResults } from '@/src/infrastructure/opac/parsers/sisis/parseSisisSearchResults';
+import {
+  extractSisisAccountLinks,
+  parseSisisAccountLoans,
+  parseSisisAccountReservations,
+} from '@/src/infrastructure/opac/parsers/sisis/parseSisisAccountSnapshot';
+import { fetchTextWithRetry } from '@/src/infrastructure/opac/transport/fetchWithRetry';
+import { normalizeProviderBaseUrl } from '@/src/infrastructure/opac/transport/normalizeProviderBaseUrl';
 
 type SessionState = {
   cookie?: string;
@@ -23,10 +31,10 @@ type SisisAuthSessionPayload = {
   cookie: string;
   accountUrl: string;
   username: string;
+  baseUrl?: string;
 };
 
 const DEFAULT_PAGE_SIZE = 20;
-const DEFAULT_TIMEOUT_MS = 8000;
 const META_TITLE_KEYS = ['citation_title', 'dc.title', 'dcterms.title', 'og:title', 'twitter:title'];
 const META_AUTHOR_KEYS = ['citation_author', 'dc.creator', 'dcterms.creator', 'author'];
 const META_DESCRIPTION_KEYS = ['description', 'dc.description', 'dcterms.description', 'og:description'];
@@ -34,6 +42,11 @@ const META_PUBLISHER_KEYS = ['citation_publisher', 'dc.publisher', 'dcterms.publ
 const META_LANGUAGE_KEYS = ['dc.language', 'dcterms.language', 'language'];
 const META_DATE_KEYS = ['citation_publication_date', 'dc.date', 'dcterms.issued', 'dcterms.date'];
 const META_COVER_KEYS = ['og:image', 'twitter:image', 'citation_cover_url'];
+
+const buildFailure = (kind: OpacSearchFailureKind, error: unknown) => ({
+  kind,
+  message: error instanceof Error ? error.message : 'Unknown search error.',
+});
 
 const HTML_ENTITIES: Record<string, string> = {
   '&amp;': '&',
@@ -245,23 +258,35 @@ export class SisisAdapter implements LibrarySystemAdapter {
       };
     }
 
-    try {
-      const baseUrl = this.normalizeBaseUrl(this.provider.baseUrl);
-      const session: SessionState = {};
+    const baseUrl = this.normalizeBaseUrl(this.provider.baseUrl);
+    const session: SessionState = {};
+    let resultsHtml: string;
 
+    try {
       await this.fetchHtml(`${baseUrl}/start.do`, session);
 
       const searchUrl = this.buildSearchUrl(baseUrl, query);
       const searchHtml = await this.fetchHtml(searchUrl, session);
 
-      const resultsHtml = await this.resolveResultsPage({
+      resultsHtml = await this.resolveResultsPage({
         baseUrl,
         page,
         pageSize,
         session,
         html: searchHtml,
       });
+    } catch (error) {
+      console.warn('[SisisAdapter] search transport failed', error);
+      return {
+        total: 0,
+        page,
+        pageSize,
+        records: [],
+        diagnostics: { failure: buildFailure('transport', error) },
+      };
+    }
 
+    try {
       const parsed = parseSisisSearchResults(resultsHtml, baseUrl);
       this.lastSession = { cookie: session.cookie, baseUrl, createdAt: Date.now() };
 
@@ -272,12 +297,13 @@ export class SisisAdapter implements LibrarySystemAdapter {
         records: parsed.records,
       };
     } catch (error) {
-      console.warn('[SisisAdapter] search failed', error);
+      console.warn('[SisisAdapter] search parse failed', error);
       return {
         total: 0,
         page,
         pageSize,
         records: [],
+        diagnostics: { failure: buildFailure('parser', error) },
       };
     }
   }
@@ -391,12 +417,83 @@ export class SisisAdapter implements LibrarySystemAdapter {
 
     const session: SessionState = { cookie: authSession.cookie };
     try {
-      await this.fetchHtml(authSession.accountUrl, session);
+      let accountUrl = authSession.accountUrl;
+      let accountHtml = await this.fetchHtml(accountUrl, session);
+      if (this.containsLoginForm(accountHtml)) {
+        const fallbackUrl = await this.resolveAccountUrlFallback(authSession, session);
+        if (fallbackUrl && fallbackUrl !== accountUrl) {
+          accountUrl = fallbackUrl;
+          accountHtml = await this.fetchHtml(accountUrl, session);
+        }
+      }
+      if (this.isSessionInvalid(accountHtml) || this.containsLoginForm(accountHtml)) {
+        return {
+          status: 'error',
+          message: 'SISIS session expired. Please log in again.',
+        };
+      }
+
+      const baseUrl = authSession.baseUrl ?? this.normalizeBaseUrl(this.provider.baseUrl ?? '');
+      const links = extractSisisAccountLinks(accountHtml, baseUrl);
+
+      let loans = parseSisisAccountLoans(accountHtml);
+      let reservations = parseSisisAccountReservations(accountHtml);
+
+      if (loans.length === 0) {
+        const loanCandidates = [
+          links.loansUrl,
+          this.buildAccountMethodUrl(accountUrl, 'showAccount'),
+          this.buildAccountMethodUrl(accountUrl, 'showLoans'),
+          this.buildAccountMethodUrl(accountUrl, 'showBorrowed'),
+        ].filter(Boolean) as string[];
+
+        for (const candidate of loanCandidates) {
+          if (candidate === accountUrl) continue;
+          const html = await this.fetchHtml(candidate, session);
+          if (this.isSessionInvalid(html)) {
+            return {
+              status: 'error',
+              message: 'SISIS session expired. Please log in again.',
+            };
+          }
+          if (this.containsLoginForm(html)) {
+            continue;
+          }
+          loans = parseSisisAccountLoans(html);
+          if (loans.length > 0) break;
+        }
+      }
+
+      if (reservations.length === 0) {
+        const reservationCandidates = [
+          links.reservationsUrl,
+          this.buildAccountMethodUrl(accountUrl, 'showReservations'),
+          this.buildAccountMethodUrl(accountUrl, 'showRequests'),
+          this.buildAccountMethodUrl(accountUrl, 'showHolds'),
+        ].filter(Boolean) as string[];
+
+        for (const candidate of reservationCandidates) {
+          if (candidate === accountUrl) continue;
+          const html = await this.fetchHtml(candidate, session);
+          if (this.isSessionInvalid(html)) {
+            return {
+              status: 'error',
+              message: 'SISIS session expired. Please log in again.',
+            };
+          }
+          if (this.containsLoginForm(html)) {
+            continue;
+          }
+          reservations = parseSisisAccountReservations(html);
+          if (reservations.length > 0) break;
+        }
+      }
+
       return {
         status: 'success',
         snapshot: {
-          loans: [],
-          reservations: [],
+          loans,
+          reservations,
         },
       };
     } catch (error) {
@@ -412,20 +509,31 @@ export class SisisAdapter implements LibrarySystemAdapter {
     const session: SessionState = {};
     const startHtml = await this.fetchHtml(`${baseUrl}/start.do`, session);
     const loginUrl = this.extractAccountLoginUrl(startHtml, baseUrl) ?? `${baseUrl}/userAccount.do`;
+    const loginPage = await this.fetchLoginPage(loginUrl, session);
+    const loginForm = this.extractLoginForm(loginPage.html);
+    if (!loginForm) {
+      throw new Error('Unable to locate SISIS login form.');
+    }
 
-    const html = await this.fetchHtml(
-      `${loginUrl}${loginUrl.includes('?') ? '&' : '?'}methodToCall=showLogin`,
-      session,
-    );
+    const actionUrl = resolveUrl(loginUrl, loginForm.action ?? loginUrl);
+    const formPayload = new URLSearchParams();
+    Object.entries(loginForm.hiddenFields).forEach(([key, value]) => {
+      formPayload.set(key, value);
+    });
+    formPayload.set(loginForm.usernameField ?? 'username', input.username);
+    formPayload.set(loginForm.passwordField ?? 'password', input.password);
 
-    if (!session.cookie || this.containsLoginError(html)) {
+    const loginHtml = await this.postForm(actionUrl, formPayload.toString(), session);
+
+    if (!session.cookie || this.containsLoginError(loginHtml) || this.containsLoginForm(loginHtml)) {
       throw new Error('Invalid credentials for SISIS account login.');
     }
 
     return {
       cookie: session.cookie,
-      accountUrl: loginUrl,
+      accountUrl: this.normalizeAccountUrl(loginUrl, baseUrl),
       username: input.username,
+      baseUrl,
     };
   }
 
@@ -440,7 +548,17 @@ export class SisisAdapter implements LibrarySystemAdapter {
   }
 
   private containsLoginError(html: string): boolean {
-    return /fehl(er|geschlagen)|invalid|ungültig|passwort|kennwort/i.test(html);
+    return /fehl(er|geschlagen)|invalid|ungültig|unghültig|passwort|kennwort|anmeldung[^<]{0,40}fehl|login[^<]{0,40}failed|falsche?[^<]{0,20}(?:kennung|passwort)/i.test(
+      html,
+    );
+  }
+
+  private containsLoginForm(html: string): boolean {
+    const hasForm = /<form[^>]+login|<form[^>]+LoginBean/i.test(html);
+    const hasUserField =
+      /name\s*=\s*["']username["']|name\s*=\s*["']user/i.test(html) || /kennung/i.test(html);
+    const hasPasswordField = /name\s*=\s*["']password["']/i.test(html);
+    return hasForm && (hasUserField || hasPasswordField);
   }
 
   private parseSessionToken(token?: string): SisisAuthSessionPayload | null {
@@ -456,26 +574,143 @@ export class SisisAdapter implements LibrarySystemAdapter {
   }
 
   private normalizeBaseUrl(baseUrl: string): string {
-    const trimmed = baseUrl.replace(/\/+$/, '');
-    try {
-      const url = new URL(trimmed);
-      if (
-        String(this.provider.id) === '8714' &&
-        url.hostname.toLowerCase() === 'webopac.stadtbibliothek-leipzig.de'
-      ) {
-        // Leipzig's legacy webopac hostname presents a mismatched TLS certificate;
-        // bibliothekskatalog.leipzig.de is the canonical SISIS endpoint exposed by the library.
-        url.hostname = 'bibliothekskatalog.leipzig.de';
-        return url.toString().replace(/\/+$/, '');
-      }
-    } catch {
-      // Keep original URL if parsing fails.
-    }
-    return trimmed;
+    const trimmed = baseUrl.trim();
+    return (
+      normalizeProviderBaseUrl(trimmed, { api: this.system, providerId: this.provider.id }).normalizedUrl ??
+      trimmed
+    ).replace(/\/+$/, '');
   }
 
   private isSessionInvalid(html: string): boolean {
     return /sitzung[^<]*g[üu]ltig|session[^<]*invalid/i.test(html);
+  }
+
+  private buildAccountMethodUrl(accountUrl: string, methodToCall: string): string {
+    try {
+      const url = new URL(accountUrl);
+      url.searchParams.set('methodToCall', methodToCall);
+      return url.toString();
+    } catch {
+      return accountUrl;
+    }
+  }
+
+  private normalizeAccountUrl(loginUrl: string, baseUrl: string): string {
+    try {
+      const url = new URL(loginUrl, `${baseUrl.replace(/\/+$/, '')}/`);
+      url.searchParams.delete('methodToCall');
+      return url.toString();
+    } catch {
+      return loginUrl;
+    }
+  }
+
+  private async resolveAccountUrlFallback(
+    authSession: SisisAuthSessionPayload,
+    session: SessionState,
+  ): Promise<string | null> {
+    const baseUrl = authSession.baseUrl ?? this.normalizeBaseUrl(this.provider.baseUrl ?? '');
+    if (!baseUrl) return null;
+    try {
+      const startHtml = await this.fetchHtml(`${baseUrl}/start.do`, session);
+      const loginUrl = this.extractAccountLoginUrl(startHtml, baseUrl);
+      if (!loginUrl) return null;
+      return this.normalizeAccountUrl(loginUrl, baseUrl);
+    } catch {
+      return null;
+    }
+  }
+
+  private async fetchLoginPage(loginUrl: string, session: SessionState): Promise<{ html: string; url: string }> {
+    const showLoginUrl = this.buildAccountMethodUrl(loginUrl, 'showLogin');
+    const showUrl = this.buildAccountMethodUrl(loginUrl, 'show');
+    const showLoginHtml = await this.fetchHtml(showLoginUrl, session);
+    if (this.containsLoginForm(showLoginHtml)) {
+      return { html: showLoginHtml, url: showLoginUrl };
+    }
+    const showHtml = await this.fetchHtml(showUrl, session);
+    return { html: showHtml, url: showUrl };
+  }
+
+  private extractLoginForm(html: string): {
+    action?: string;
+    hiddenFields: Record<string, string>;
+    usernameField?: string;
+    passwordField?: string;
+  } | null {
+    const formRegex = /<form\b([^>]*)>([\s\S]*?)<\/form>/gi;
+    let match: RegExpExecArray | null = null;
+    while ((match = formRegex.exec(html)) !== null) {
+      const formAttrs = match[1];
+      const formHtml = match[2];
+      if (
+        !/name\s*=\s*["']username["']/i.test(formHtml) &&
+        !/name\s*=\s*["']user/i.test(formHtml) &&
+        !/Kennung/i.test(formHtml)
+      ) {
+        continue;
+      }
+
+      const actionMatch = formAttrs.match(/action\s*=\s*["']([^"']+)["']/i);
+      const hiddenFields: Record<string, string> = {};
+      let usernameField: string | undefined;
+      let passwordField: string | undefined;
+
+      const inputRegex = /<input\b[^>]*>/gi;
+      let inputMatch: RegExpExecArray | null = null;
+      while ((inputMatch = inputRegex.exec(formHtml)) !== null) {
+        const input = inputMatch[0];
+        const nameMatch = input.match(/name\s*=\s*["']([^"']+)["']/i);
+        if (!nameMatch) continue;
+        const name = nameMatch[1];
+        const typeMatch = input.match(/type\s*=\s*["']([^"']+)["']/i);
+        const type = typeMatch ? typeMatch[1].toLowerCase() : 'text';
+        const valueMatch = input.match(/value\s*=\s*["']([^"']*)["']/i);
+        const value = valueMatch ? valueMatch[1] : '';
+
+        if (type === 'hidden') {
+          hiddenFields[name] = value;
+        } else if (type === 'password') {
+          passwordField = name;
+        } else if (
+          type === 'text' ||
+          type === 'tel' ||
+          type === 'number' ||
+          type === 'email'
+        ) {
+          if (/user|kenn|login|barcode|card/i.test(name) || /Kennung/i.test(input)) {
+            usernameField = name;
+          }
+        }
+      }
+
+      return {
+        action: actionMatch ? actionMatch[1] : undefined,
+        hiddenFields,
+        usernameField,
+        passwordField,
+      };
+    }
+
+    return null;
+  }
+
+  private async postForm(url: string, body: string, session: SessionState): Promise<string> {
+    return await fetchTextWithRetry(
+      url,
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'text/html,application/xhtml+xml',
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'openlib-sisis-adapter',
+          ...(session.cookie ? { Cookie: session.cookie } : {}),
+        },
+        body,
+        redirect: 'follow',
+      },
+      { onResponse: (response) => this.captureCookies(response, session) },
+    );
   }
 
   private resolveDetailUrl(input: { recordId: string; detailUrl?: string }): string | null {
@@ -580,10 +815,9 @@ export class SisisAdapter implements LibrarySystemAdapter {
   }
 
   private async fetchHtml(url: string, session: SessionState): Promise<string> {
-    const controller = new AbortController();
-    const handle = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-    try {
-      const response = await fetch(url, {
+    return await fetchTextWithRetry(
+      url,
+      {
         method: 'GET',
         headers: {
           Accept: 'text/html,application/xhtml+xml',
@@ -591,14 +825,9 @@ export class SisisAdapter implements LibrarySystemAdapter {
           ...(session.cookie ? { Cookie: session.cookie } : {}),
         },
         redirect: 'follow',
-        signal: controller.signal,
-      });
-
-      this.captureCookies(response, session);
-      return await response.text();
-    } finally {
-      clearTimeout(handle);
-    }
+      },
+      { onResponse: (response) => this.captureCookies(response, session) },
+    );
   }
 
   private captureCookies(response: Response, session: SessionState) {

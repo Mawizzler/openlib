@@ -9,9 +9,10 @@ import type { OpacAvailability, OpacRecord, OpacSearchResult } from '@/src/domai
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { parseOpenSearchResults } from '@/src/infrastructure/opac/parsers/open/parseOpenSearchResults';
 import { parseOpenMediensucheResults } from '@/src/infrastructure/opac/parsers/open/parseOpenMediensucheResults';
+import { fetchTextWithRetry } from '@/src/infrastructure/opac/transport/fetchWithRetry';
+import { normalizeProviderBaseUrl } from '@/src/infrastructure/opac/transport/normalizeProviderBaseUrl';
 
 const DEFAULT_PAGE_SIZE = 20;
-const DEFAULT_TIMEOUT_MS = 8000;
 
 export class OpenAdapter implements LibrarySystemAdapter {
   readonly system = 'open';
@@ -79,7 +80,10 @@ export class OpenAdapter implements LibrarySystemAdapter {
 
   private normalizeBaseUrl() {
     const candidate = this.provider.baseUrl?.trim() || 'https://openlibrary.org';
-    return candidate.replace(/\/+$/, '');
+    return (
+      normalizeProviderBaseUrl(candidate, { api: this.system, providerId: this.provider.id }).normalizedUrl ??
+      candidate
+    ).replace(/\/+$/, '');
   }
 
   private buildSearchUrl(query: string, page: number) {
@@ -89,23 +93,9 @@ export class OpenAdapter implements LibrarySystemAdapter {
   }
 
   private async fetchJson(url: string): Promise<string> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-
-    try {
-      const response = await fetch(url, {
-        headers: { Accept: 'application/json' },
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Open search request failed with HTTP ${response.status}`);
-      }
-
-      return await response.text();
-    } finally {
-      clearTimeout(timeout);
-    }
+    return await fetchTextWithRetry(url, {
+      headers: { Accept: 'application/json' },
+    });
   }
 
   private async searchViaMediensuche(query: string, page: number): Promise<OpacSearchResult> {
@@ -136,22 +126,8 @@ export class OpenAdapter implements LibrarySystemAdapter {
   }
 
   private async fetchHtml(url: string): Promise<string> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-
-    try {
-      const response = await fetch(url, {
-        headers: { Accept: 'text/html,application/xhtml+xml' },
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Open Mediensuche request failed with HTTP ${response.status}`);
-      }
-
-      return await response.text();
-    } finally {
-      clearTimeout(timeout);
-    }
+    return await fetchTextWithRetry(url, {
+      headers: { Accept: 'text/html,application/xhtml+xml' },
+    });
   }
 }
