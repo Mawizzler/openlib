@@ -28,6 +28,10 @@ import { useAppPalette, type AppPalette } from '@/src/presentation/theme/palette
 
 type AvailabilityTone = 'positive' | 'negative' | 'neutral';
 type SearchStatus = 'idle' | 'loading' | 'success' | 'error';
+type OpacBriefRecordDisplayFields = OpacBriefRecord & {
+  mediaType?: string;
+  coverImageUrl?: string;
+};
 
 type SearchScreenProps = {
   onBack: () => void;
@@ -61,6 +65,16 @@ const formatPublicationMeta = (record: OpacBriefRecord) => {
   const language = record.language?.trim();
   if (language) parts.push(`Language: ${language}`);
   return parts.length > 0 ? parts.join(' · ') : 'Publication details unavailable';
+};
+
+const getRecordMediaFormat = (record: OpacBriefRecord) => {
+  const displayRecord = record as OpacBriefRecordDisplayFields;
+  return displayRecord.mediaType || record.format;
+};
+
+const getRecordCoverUrl = (record: OpacBriefRecord) => {
+  const displayRecord = record as OpacBriefRecordDisplayFields;
+  return displayRecord.coverImageUrl || record.coverUrl;
 };
 
 const getAvailabilityBadge = (
@@ -150,13 +164,14 @@ export function SearchScreen({ onBack, onPickLibrary, onShowDetails }: SearchScr
     const title = normalizeTitle(item.title);
     const authors = formatAuthors(item.authors);
     const publicationMeta = formatPublicationMeta(item);
-    const mediaLabel = formatMediaLabel(item.mediaType || item.format);
+    const mediaLabel = formatMediaLabel(getRecordMediaFormat(item));
+    const coverUrl = getRecordCoverUrl(item);
     const availability = getAvailabilityBadge(item);
 
     return (
       <Card style={styles.resultCard}>
         <View style={styles.resultTopRow}>
-          {item.coverImageUrl ? <Image source={{ uri: item.coverImageUrl }} style={styles.coverImage} /> : null}
+          {coverUrl ? <Image source={{ uri: coverUrl }} style={styles.coverImage} /> : null}
           <View style={styles.resultContent}>
             <Text style={styles.resultTitle}>{title}</Text>
             <Text style={styles.resultAuthors}>{authors}</Text>
@@ -235,11 +250,11 @@ export function SearchScreen({ onBack, onPickLibrary, onShowDetails }: SearchScr
           <View>
             <Text style={styles.sectionLabel}>Recent searches</Text>
             <Inline style={styles.recentList}>
-              {recentSearches.map((recentQuery) => (
+              {recentSearches.map((recentSearch) => (
                 <Button
-                  key={recentQuery}
-                  label={recentQuery}
-                  onPress={() => handleRecentSelect(recentQuery)}
+                  key={`${recentSearch.query}:${recentSearch.searchedAt}`}
+                  label={recentSearch.query}
+                  onPress={() => handleRecentSelect(recentSearch.query)}
                   variant="secondary"
                   compact
                 />
