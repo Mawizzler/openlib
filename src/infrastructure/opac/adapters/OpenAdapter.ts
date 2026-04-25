@@ -11,6 +11,10 @@ import { parseOpenSearchResults } from '@/src/infrastructure/opac/parsers/open/p
 import { parseOpenMediensucheResults } from '@/src/infrastructure/opac/parsers/open/parseOpenMediensucheResults';
 import { fetchTextWithRetry } from '@/src/infrastructure/opac/transport/fetchWithRetry';
 import { normalizeProviderBaseUrl } from '@/src/infrastructure/opac/transport/normalizeProviderBaseUrl';
+import {
+  buildAdapterFallbackRoutes,
+  isHttp404Error,
+} from '@/src/infrastructure/opac/transport/adapterFallbackRoutes';
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -30,25 +34,7 @@ export class OpenAdapter implements LibrarySystemAdapter {
       return { total: 0, page, pageSize: DEFAULT_PAGE_SIZE, records: [] };
     }
 
-    try {
-      const url = this.buildSearchUrl(query, page);
-      const payload = await this.fetchJson(url);
-      const parsed = parseOpenSearchResults(payload, this.normalizeBaseUrl());
-
-      if (!parsed.records.length) {
-        return await this.searchViaMediensuche(query, page);
-      }
-
-      return {
-        total: parsed.total ?? parsed.records.length,
-        page,
-        pageSize: DEFAULT_PAGE_SIZE,
-        records: parsed.records,
-      };
-    } catch (error) {
-      console.warn('[OpenAdapter] /search.json path failed, trying Mediensuche fallback', error);
-      return await this.searchViaMediensuche(query, page);
-    }
+    return await this.searchViaFallbackRoutes(query, page);
   }
 
   async details(_input: { recordId: string; detailUrl?: string }): Promise<OpacRecord | null> {
@@ -86,28 +72,41 @@ export class OpenAdapter implements LibrarySystemAdapter {
     ).replace(/\/+$/, '');
   }
 
-  private buildSearchUrl(query: string, page: number) {
-    const endpoint = `${this.normalizeBaseUrl()}/search.json`;
-    const params = new URLSearchParams({ q: query, page: String(page), limit: String(DEFAULT_PAGE_SIZE) });
-    return `${endpoint}?${params.toString()}`;
-  }
-
   private async fetchJson(url: string): Promise<string> {
     return await fetchTextWithRetry(url, {
       headers: { Accept: 'application/json' },
     });
   }
 
-  private async searchViaMediensuche(query: string, page: number): Promise<OpacSearchResult> {
+  private async searchViaFallbackRoutes(query: string, page: number): Promise<OpacSearchResult> {
     const baseUrl = this.normalizeBaseUrl();
-    const endpoints = [
-      `${baseUrl}/Mediensuche/EinfacheSuche.aspx?search=${encodeURIComponent(query)}`,
-      `${baseUrl}/Mediensuche/Einfache-Suche?search=${encodeURIComponent(query)}`,
-    ];
+    const { candidates } = buildAdapterFallbackRoutes({
+      system: this.system,
+      baseUrl,
+      query,
+      page,
+      pageSize: DEFAULT_PAGE_SIZE,
+      providerId: this.provider.id,
+    });
+    const attempts: string[] = [];
 
-    for (const url of endpoints) {
+    for (const candidate of candidates) {
       try {
-        const html = await this.fetchHtml(url);
+        if (candidate.route === 'open-search-json') {
+          const payload = await this.fetchJson(candidate.url);
+          const parsed = parseOpenSearchResults(payload, baseUrl);
+          if (!parsed.records.length) {
+            continue;
+          }
+          return {
+            total: parsed.total ?? parsed.records.length,
+            page,
+            pageSize: DEFAULT_PAGE_SIZE,
+            records: parsed.records,
+          };
+        }
+
+        const html = await this.fetchHtml(candidate.url);
         const parsed = parseOpenMediensucheResults(html, baseUrl);
         if (parsed.records.length) {
           return {
@@ -118,10 +117,17 @@ export class OpenAdapter implements LibrarySystemAdapter {
           };
         }
       } catch (error) {
-        console.warn('[OpenAdapter] Mediensuche fallback endpoint failed', { url, error });
+        if (!isHttp404Error(error)) {
+          console.warn('[OpenAdapter] search transport failed', error);
+          return { total: 0, page, pageSize: DEFAULT_PAGE_SIZE, records: [] };
+        }
+        attempts.push(`${candidate.route}: ${candidate.url}`);
       }
     }
 
+    if (attempts.length > 0) {
+      console.warn('[OpenAdapter] search fallback routes exhausted after HTTP 404', attempts);
+    }
     return { total: 0, page, pageSize: DEFAULT_PAGE_SIZE, records: [] };
   }
 

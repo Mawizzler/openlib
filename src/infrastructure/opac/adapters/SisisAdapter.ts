@@ -20,6 +20,10 @@ import {
   parseSisisAccountLoans,
   parseSisisAccountReservations,
 } from '@/src/infrastructure/opac/parsers/sisis/parseSisisAccountSnapshot';
+import {
+  buildAdapterFallbackRoutes,
+  isHttp404Error,
+} from '@/src/infrastructure/opac/transport/adapterFallbackRoutes';
 import { fetchTextWithRetry } from '@/src/infrastructure/opac/transport/fetchWithRetry';
 import { normalizeProviderBaseUrl } from '@/src/infrastructure/opac/transport/normalizeProviderBaseUrl';
 
@@ -263,17 +267,12 @@ export class SisisAdapter implements LibrarySystemAdapter {
     let resultsHtml: string;
 
     try {
-      await this.fetchHtml(`${baseUrl}/start.do`, session);
-
-      const searchUrl = this.buildSearchUrl(baseUrl, query);
-      const searchHtml = await this.fetchHtml(searchUrl, session);
-
-      resultsHtml = await this.resolveResultsPage({
+      resultsHtml = await this.fetchSearchResultsHtml({
         baseUrl,
+        query,
         page,
         pageSize,
         session,
-        html: searchHtml,
       });
     } catch (error) {
       console.warn('[SisisAdapter] search transport failed', error);
@@ -757,21 +756,48 @@ export class SisisAdapter implements LibrarySystemAdapter {
     };
   }
 
-  private buildSearchUrl(baseUrl: string, query: string): string {
-    if (String(this.provider.id) === '8714') {
-      const url = new URL(`${baseUrl}/start.do`);
-      // Leipzig SISIS responds on ConQuery start endpoint (not generic search.do submit flow)
-      url.searchParams.set('sourceid', 'ConQuery');
-      url.searchParams.set('Login', 'stabi00');
-      url.searchParams.set('Query', `-1 = "${query}"`);
-      return url.toString();
+  private async fetchSearchResultsHtml(input: {
+    baseUrl: string;
+    query: string;
+    page: number;
+    pageSize: number;
+    session: SessionState;
+  }): Promise<string> {
+    try {
+      await this.fetchHtml(`${input.baseUrl}/start.do`, input.session);
+    } catch (error) {
+      if (!isHttp404Error(error)) {
+        throw error;
+      }
     }
 
-    const url = new URL(`${baseUrl}/search.do`);
-    url.searchParams.set('methodToCall', 'submit');
-    url.searchParams.set('searchCategories[0]', 'all');
-    url.searchParams.set('searchString[0]', query);
-    return url.toString();
+    const { candidates } = buildAdapterFallbackRoutes({
+      system: this.system,
+      baseUrl: input.baseUrl,
+      query: input.query,
+      page: input.page,
+      pageSize: input.pageSize,
+      providerId: this.provider.id,
+    });
+
+    for (const candidate of candidates) {
+      try {
+        const searchHtml = await this.fetchHtml(candidate.url, input.session);
+        return await this.resolveResultsPage({
+          baseUrl: input.baseUrl,
+          page: input.page,
+          pageSize: input.pageSize,
+          session: input.session,
+          html: searchHtml,
+        });
+      } catch (error) {
+        if (!isHttp404Error(error)) {
+          throw error;
+        }
+      }
+    }
+
+    throw new Error('SISIS search failed for all fallback routes with HTTP 404');
   }
 
   private async resolveResultsPage(input: {

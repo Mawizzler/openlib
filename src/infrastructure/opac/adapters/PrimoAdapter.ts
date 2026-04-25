@@ -13,6 +13,10 @@ import type {
 } from '@/src/domain/models/opac';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { parsePrimoSearchResults } from '@/src/infrastructure/opac/parsers/primo/parsePrimoSearchResults';
+import {
+  buildAdapterFallbackRoutes,
+  isHttp404Error,
+} from '@/src/infrastructure/opac/transport/adapterFallbackRoutes';
 import { fetchTextWithRetry } from '@/src/infrastructure/opac/transport/fetchWithRetry';
 import { normalizeProviderBaseUrl } from '@/src/infrastructure/opac/transport/normalizeProviderBaseUrl';
 
@@ -42,8 +46,7 @@ export class PrimoAdapter implements LibrarySystemAdapter {
     const baseUrl = this.normalizeBaseUrl();
     let payload: string;
     try {
-      const url = this.buildSearchUrl(query, page);
-      payload = await this.fetchJson(url);
+      payload = await this.fetchSearchPayload(baseUrl, query, page);
     } catch (error) {
       console.warn('[PrimoAdapter] search transport failed', error);
       return {
@@ -110,20 +113,27 @@ export class PrimoAdapter implements LibrarySystemAdapter {
     ).replace(/\/+$/, '');
   }
 
-  private buildSearchUrl(query: string, page: number) {
-    const endpoint = new URL('/primo_library/libweb/action/search.do', `${this.normalizeBaseUrl()}/`);
-    const params = new URLSearchParams({
-      fn: 'search',
-      mode: 'Basic',
-      vid: 'default',
-      tab: 'default_tab',
-      dum: 'true',
-      indx: String(Math.max(1, page - 1) * DEFAULT_PAGE_SIZE + 1),
-      bulkSize: String(DEFAULT_PAGE_SIZE),
-      ['vl(freeText0)']: query,
+  private async fetchSearchPayload(baseUrl: string, query: string, page: number): Promise<string> {
+    const { candidates } = buildAdapterFallbackRoutes({
+      system: this.system,
+      baseUrl,
+      query,
+      page,
+      pageSize: DEFAULT_PAGE_SIZE,
+      providerId: this.provider.id,
     });
-    endpoint.search = params.toString();
-    return endpoint.toString();
+
+    for (const candidate of candidates) {
+      try {
+        return await this.fetchJson(candidate.url);
+      } catch (error) {
+        if (!isHttp404Error(error)) {
+          throw error;
+        }
+      }
+    }
+
+    throw new Error('Primo search failed for all fallback routes with HTTP 404');
   }
 
   private async fetchJson(url: string): Promise<string> {
