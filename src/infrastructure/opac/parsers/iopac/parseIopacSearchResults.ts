@@ -32,7 +32,9 @@ const resolveUrl = (baseUrl: string, href: string) => {
 const extractTotal = (html: string): number | undefined => {
   const patterns = [
     /class=["'][^"']*(?:result-count|results-count)[^"']*["'][^>]*>[^<]*([\d.,]+)/i,
+    /class=["'][^"']*(?:resultCount|resultsCount|hitCount)[^"']*["'][^>]*>[^<]*([\d.,]+)/i,
     /([\d.,]+)\s+(?:Treffer|results?)/i,
+    /(?:Treffer|results?)\D{0,20}([\d.,]+)/i,
   ];
 
   for (const pattern of patterns) {
@@ -47,7 +49,10 @@ const extractTotal = (html: string): number | undefined => {
 };
 
 const parseRecord = (block: string, index: number, baseUrl: string): OpacBriefRecord | null => {
-  const titleMatch = block.match(/<a[^>]*class=["'][^"']*title[^"']*["'][^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/i);
+  const titleMatch =
+    block.match(/<a[^>]*class=["'][^"']*(?:title|record-title|result-title|hit-title)[^"']*["'][^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/i) ??
+    block.match(/<a[^>]*href=["']([^"']+)["'][^>]*class=["'][^"']*(?:title|record-title|result-title|hit-title)[^"']*["'][^>]*>([\s\S]*?)<\/a>/i) ??
+    block.match(/<h\d[^>]*>\s*<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>\s*<\/h\d>/i);
   if (!titleMatch) return null;
 
   const detailUrl = resolveUrl(baseUrl, titleMatch[1]);
@@ -57,7 +62,9 @@ const parseRecord = (block: string, index: number, baseUrl: string): OpacBriefRe
   const idFromQuery = detailUrl.match(/[?&](?:id|record|doc)=(\d+)/i)?.[1];
   const id = idFromQuery ?? `iopac-${index}`;
 
-  const authorMatch = block.match(/class=["'][^"']*(?:author|creator)[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
+  const authorMatch =
+    block.match(/class=["'][^"']*(?:author|creator|verfasser)[^"']*["'][^>]*>([\s\S]*?)<\/(?:span|div|p)>/i) ??
+    block.match(/(?:Author|Verfasser)\s*[:\-]?\s*<\/?[^>]*>\s*([^<]{2,200})/i);
   const author = cleanText(authorMatch?.[1]);
 
   const yearMatch = block.match(/\b(1[5-9]\d{2}|20\d{2})\b/);
@@ -73,7 +80,9 @@ const parseRecord = (block: string, index: number, baseUrl: string): OpacBriefRe
 };
 
 export const parseIopacSearchResults = (html: string, baseUrl: string): ParsedIopacSearchResults => {
-  const blocks = html.match(/<article[^>]*class=["'][^"']*result-item[^"']*["'][\s\S]*?<\/article>/gi) ?? [];
+  const blockPattern =
+    /<(article|div|li)[^>]*class=["'][^"']*(?:result-item|record-item|search-result|hit-item)[^"']*["'][^>]*>[\s\S]*?<\/\1>/gi;
+  const blocks = html.match(blockPattern) ?? [];
 
   const records: OpacBriefRecord[] = blocks
     .map((block, index) => parseRecord(block, index, baseUrl))

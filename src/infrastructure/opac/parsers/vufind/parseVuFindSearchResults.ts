@@ -73,9 +73,7 @@ const extractAnchors = (html: string) => {
 const extractBlocks = (html: string) => {
   const blocks: string[] = [];
   const patterns = [
-    /<div[^>]*(?:class|id)=["'][^"']*(?:result|record|search-result|result-item|media|list-group-item)[^"']*["'][^>]*>[\s\S]*?<\/div>/gi,
-    /<li[^>]*(?:class|id)=["'][^"']*(?:result|record|search-result|result-item|media|list-group-item)[^"']*["'][^>]*>[\s\S]*?<\/li>/gi,
-    /<article[^>]*(?:class|id)=["'][^"']*(?:result|record|search-result|result-item)[^"']*["'][^>]*>[\s\S]*?<\/article>/gi,
+    /<(div|li|article)[^>]*(?:class|id)=["'][^"']*(?:result|record|search-result|result-item|media|list-group-item)[^"']*["'][^>]*>[\s\S]*?<\/\1>/gi,
   ];
 
   for (const pattern of patterns) {
@@ -260,9 +258,13 @@ const parseBlock = (block: string, baseUrl: string, index: number): OpacBriefRec
     extractAttribute(block, 'data-href') ??
     chosen?.href ??
     null;
+  const recordIdFromBlock = extractRecordIdFromBlock(block);
+
+  if (!detailUrlCandidate && !recordIdFromBlock) {
+    return null;
+  }
 
   const detailUrl = detailUrlCandidate ? resolveUrl(baseUrl, detailUrlCandidate) : null;
-  const recordIdFromBlock = extractRecordIdFromBlock(block);
   const recordIdFromUrl = extractRecordIdFromUrl(detailUrl);
   const recordId = recordIdFromBlock ?? recordIdFromUrl ?? `vufind-hit-${index + 1}`;
   const title = extractTitle(block, chosen?.text || `Result ${index + 1}`);
