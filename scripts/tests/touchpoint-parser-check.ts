@@ -32,4 +32,16 @@ assert.equal(
   'https://katalog.example.org/TouchPoint/search.do?methodToCall=showHit&curPos=1&id=HT0001',
 );
 
+const variantPayload = payload
+  .replace(/<li class="resultListItem">/g, '<article class="searchResultItem">')
+  .replace(/<\/li>/g, '</article>')
+  .replace('class="title" href="/search.do?methodToCall=showHit&amp;curPos=1&amp;id=HT0001"', 'href="/search.do?methodToCall=showHit&amp;curPos=1&amp;id=HT0001" class="hitTitle"')
+  .replace('<span class="person">Martin, Robert C.</span>', '<div class="creator">Martin, Robert C.</div>')
+  .replace('Treffer 2', '2 Treffer');
+const parsedVariant = parseTouchpointSearchResults(variantPayload, 'https://katalog.example.org/TouchPoint');
+assert.equal(parsedVariant.total, 2);
+assert.equal(parsedVariant.records.length, 2);
+assert.equal(parsedVariant.records[0].title, 'The Pragmatic Programmer');
+assert.equal(parsedVariant.records[1].authors[0], 'Martin');
+
 console.log('touchpoint-parser-check: ok');

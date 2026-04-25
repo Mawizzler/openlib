@@ -12,6 +12,10 @@ type AdisRawRecord = {
 type AdisSearchPayload = {
   total?: unknown;
   records?: unknown;
+  result?: unknown;
+  data?: unknown;
+  items?: unknown;
+  hits?: unknown;
 };
 
 type AdisParsedSearchResult = {
@@ -69,16 +73,28 @@ export const parseAdisSearchResults = (
   payload: AdisSearchPayload,
   baseUrl?: string,
 ): AdisParsedSearchResult => {
-  const sourceRecords = Array.isArray(payload.records) ? (payload.records as AdisRawRecord[]) : [];
+  const nestedPayloads = [payload, payload.data, payload.result].filter(
+    (candidate): candidate is AdisSearchPayload => Boolean(candidate && typeof candidate === 'object'),
+  );
+
+  const sourceRecords =
+    nestedPayloads
+      .map((candidate) => {
+        if (Array.isArray(candidate.records)) return candidate.records as AdisRawRecord[];
+        if (Array.isArray(candidate.items)) return candidate.items as AdisRawRecord[];
+        if (Array.isArray(candidate.hits)) return candidate.hits as AdisRawRecord[];
+        return [];
+      })
+      .find((records) => records.length > 0) ?? [];
 
   const records = sourceRecords
     .map((record, index) => parseRecord(record, index, baseUrl))
     .filter((record): record is OpacRecord => record !== null);
 
   const total =
-    typeof payload.total === 'number' && Number.isFinite(payload.total)
-      ? Math.max(0, Math.trunc(payload.total))
-      : records.length;
+    nestedPayloads
+      .map((candidate) => candidate.total)
+      .find((value): value is number => typeof value === 'number' && Number.isFinite(value)) ?? records.length;
 
   return { total, records };
 };

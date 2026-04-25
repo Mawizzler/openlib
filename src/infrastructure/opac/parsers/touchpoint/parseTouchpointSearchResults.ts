@@ -32,13 +32,17 @@ export const parseTouchpointSearchResults = (
   if (!html || typeof html !== 'string') return { records: [] };
 
   const records: OpacBriefRecord[] = [];
-  const itemRegex = /<li[^>]*class=["'][^"']*resultListItem[^"']*["'][^>]*>([\s\S]*?)<\/li>/gi;
+  const itemRegex =
+    /<(li|div|article)[^>]*class=["'][^"']*(?:resultListItem|searchResultItem|hitItem|result-item)[^"']*["'][^>]*>([\s\S]*?)<\/\1>/gi;
   let itemMatch: RegExpExecArray | null;
   let index = 0;
 
   while ((itemMatch = itemRegex.exec(html)) !== null) {
-    const block = itemMatch[1] ?? '';
-    const linkMatch = block.match(/<a[^>]*class=["'][^"']*title[^"']*["'][^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/i);
+    const block = itemMatch[2] ?? '';
+    const linkMatch =
+      block.match(/<a[^>]*class=["'][^"']*(?:title|hitTitle|recordTitle|result-title)[^"']*["'][^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/i) ??
+      block.match(/<a[^>]*href=["']([^"']+)["'][^>]*class=["'][^"']*(?:title|hitTitle|recordTitle|result-title)[^"']*["'][^>]*>([\s\S]*?)<\/a>/i) ??
+      block.match(/<a[^>]*href=["']([^"']*(?:showHit|record|detail)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/i);
 
     const detailHref = decodeHtml(linkMatch?.[1]?.trim() ?? '');
     const title = stripTags(linkMatch?.[2] ?? '');
@@ -47,7 +51,9 @@ export const parseTouchpointSearchResults = (
     const idFromHref = detailHref.match(/id=([^&"']+)/i)?.[1];
     const id = idFromHref ? decodeURIComponent(idFromHref) : `touchpoint-${index + 1}`;
 
-    const authorMatch = block.match(/<span[^>]*class=["'][^"']*(?:author|person)[^"']*["'][^>]*>([\s\S]*?)<\/span>/i);
+    const authorMatch =
+      block.match(/<(?:span|div|p)[^>]*class=["'][^"']*(?:author|person|creator|verfasser)[^"']*["'][^>]*>([\s\S]*?)<\/(?:span|div|p)>/i) ??
+      block.match(/(?:Author|Verfasser)\s*[:\-]?\s*<\/?[^>]*>\s*([^<]{2,200})/i);
     const authorText = stripTags(authorMatch?.[1] ?? '');
     const authors = authorText
       ? authorText
@@ -70,7 +76,10 @@ export const parseTouchpointSearchResults = (
     index += 1;
   }
 
-  const totalMatch = html.match(/(?:Treffer|results)\D{0,20}(\d{1,5})/i);
+  const totalMatch =
+    html.match(/class=["'][^"']*(?:resultCount|resultsCount|hitCount)[^"']*["'][^>]*>[^<]*?(\d{1,5})/i) ??
+    html.match(/(\d{1,5})\s*(?:Treffer|results)/i) ??
+    html.match(/(?:Treffer|results)\D{0,20}(\d{1,5})/i);
   const total = totalMatch ? Number.parseInt(totalMatch[1], 10) : undefined;
 
   return { total, records };
