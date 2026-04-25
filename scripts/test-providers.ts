@@ -66,6 +66,16 @@ type ProviderStatus = {
   missingFields?: string[];
   checkedAt: string;
   recordsCount?: number;
+  queryAttempts?: QueryAttempt[];
+  winningQuery?: string;
+};
+
+type QueryAttempt = {
+  query: string;
+  elapsedMs: number;
+  recordsCount: number;
+  failureKind?: OpacSearchFailureKind;
+  failureMessage?: string;
 };
 
 type ProbeResult = {
@@ -76,11 +86,23 @@ type ProbeResult = {
   recordsCount?: number;
   failureKind?: OpacSearchFailureKind;
   failureMessage?: string;
+  queryAttempts: QueryAttempt[];
+  winningQuery?: string;
 };
 
 const timeoutMs = Number(process.env.PROVIDER_TEST_TIMEOUT_MS ?? '12000');
 const concurrency = Number(process.env.PROVIDER_TEST_CONCURRENCY ?? '4');
-const testQuery = process.env.PROVIDER_TEST_QUERY ?? 'harry potter';
+const defaultTestQueries = ['harry potter', 'potter', 'buch'];
+const parseTestQueries = (value: string | undefined): string[] =>
+  (value ?? '')
+    .split(',')
+    .map((query) => query.trim())
+    .filter((query) => query.length > 0);
+const testQueries = parseTestQueries(process.env.PROVIDER_TEST_QUERIES ?? process.env.PROVIDER_TEST_QUERY);
+if (testQueries.length === 0) {
+  testQueries.push(...defaultTestQueries);
+}
+const testQuery = testQueries[0];
 const onlyProviderIds = new Set(
   (process.env.PROVIDER_TEST_ONLY_IDS ?? '')
     .split(',')
@@ -126,51 +148,98 @@ const withTimeout = async <T>(promise: Promise<T>, timeout: number): Promise<T> 
 
 const probeUsableSearch = async (provider: OpacappNormalizedProvider): Promise<ProbeResult> => {
   const service = new SearchFlowService();
-  const started = Date.now();
-  try {
-    const result = await withTimeout(
-      service.search(provider, {
-        query: testQuery,
-      }),
-      timeoutMs,
-    );
-    const elapsedMs = Date.now() - started;
-    const recordsCount = result.records.length;
-    const failure = result.diagnostics?.failure;
-    if (failure) {
-      const detail = failure.message ? `: ${failure.message}` : '';
-      return {
-        ok: false,
+  const probeStarted = Date.now();
+  const queryAttempts: QueryAttempt[] = [];
+  let firstFailure: Pick<QueryAttempt, 'failureKind' | 'failureMessage'> | null = null;
+
+  for (const query of testQueries) {
+    const started = Date.now();
+    try {
+      const result = await withTimeout(
+        service.search(provider, {
+          query,
+        }),
+        timeoutMs,
+      );
+      const elapsedMs = Date.now() - started;
+      const recordsCount = result.records.length;
+      const failure = result.diagnostics?.failure;
+      const attempt: QueryAttempt = {
+        query,
         elapsedMs,
         recordsCount,
-        failureKind: failure.kind,
-        failureMessage: failure.message,
-        reason: `Search failure (${failure.kind})${detail}`,
       };
-    }
-    if (recordsCount > 0) {
-      return {
-        ok: true,
-        elapsedMs,
-        classification: 'usable_records',
-        recordsCount,
-        reason: `Usable search returned ${recordsCount} records for query "${testQuery}"`,
+
+      if (failure) {
+        attempt.failureKind = failure.kind;
+        attempt.failureMessage = failure.message;
+        firstFailure ??= {
+          failureKind: failure.kind,
+          failureMessage: failure.message,
+        };
+      }
+
+      queryAttempts.push(attempt);
+
+      if (recordsCount > 0) {
+        return {
+          ok: true,
+          elapsedMs: Date.now() - probeStarted,
+          classification: 'usable_records',
+          recordsCount,
+          queryAttempts,
+          winningQuery: query,
+          reason: `Usable search returned ${recordsCount} records for query "${query}"`,
+        };
+      }
+    } catch (error) {
+      const failureMessage = error instanceof Error ? error.message : 'Unknown search error';
+      const attempt: QueryAttempt = {
+        query,
+        elapsedMs: Date.now() - started,
+        recordsCount: 0,
+        failureMessage,
       };
+      firstFailure ??= {
+        failureMessage,
+      };
+      queryAttempts.push(attempt);
     }
+  }
+
+  const elapsedMs = Date.now() - probeStarted;
+  if (!firstFailure) {
     return {
       ok: false,
       elapsedMs,
       classification: 'deterministic_no_records',
-      recordsCount,
+      recordsCount: 0,
+      queryAttempts,
       reason: 'deterministic_no_records',
     };
-  } catch (error) {
+  }
+
+  const detail = firstFailure.failureMessage ? `: ${firstFailure.failureMessage}` : '';
+  if (firstFailure.failureKind) {
     return {
       ok: false,
-      elapsedMs: Date.now() - started,
-      reason: error instanceof Error ? error.message : 'Unknown search error',
+      elapsedMs,
+      recordsCount: 0,
+      failureKind: firstFailure.failureKind,
+      failureMessage: firstFailure.failureMessage,
+      queryAttempts,
+      reason: `Search failure (${firstFailure.failureKind})${detail}`,
     };
   }
+
+  return {
+    ok: false,
+    elapsedMs,
+    recordsCount: 0,
+    failureMessage: firstFailure.failureMessage,
+    queryAttempts,
+    reason: firstFailure.failureMessage ?? 'Unknown search error',
+  };
 };
 
 const mapLimit = async <T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> => {
@@ -343,6 +412,8 @@ const run = async () => {
         rewriteToHost: normalization.rewriteToHost,
         elapsedMs: probe.elapsedMs,
         recordsCount: probe.recordsCount,
+        queryAttempts: probe.queryAttempts,
+        winningQuery: probe.winningQuery,
         checkedAt,
       } satisfies ProviderStatus;
     }
@@ -360,6 +431,8 @@ const run = async () => {
       rewriteToHost: normalization.rewriteToHost,
       elapsedMs: probe.elapsedMs,
       recordsCount: probe.recordsCount,
+      queryAttempts: probe.queryAttempts,
+      winningQuery: probe.winningQuery,
       reason: probe.reason,
       checkedAt,
     } satisfies ProviderStatus;
@@ -385,6 +458,7 @@ const run = async () => {
     timeoutMs,
     concurrency,
     testQuery,
+    testQueries,
     statusByProviderId: Object.fromEntries(statuses.filter((status) => status.id).map((status) => [status.id as string, status.status])),
     results: statuses,
   };

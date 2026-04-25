@@ -60,7 +60,35 @@ const STATUS_PATH = path.join(process.cwd(), 'artifacts', 'provider-status', 'st
 const OUTPUT_DIR = path.join(process.cwd(), 'artifacts', 'provider-health-matrix');
 const OUTPUT_JSON = path.join(OUTPUT_DIR, 'matrix.json');
 
-const supportedApis = new Set(['sisis', 'vufind']);
+const API_ALIASES: Record<string, string> = {
+  winbiap: 'bibliotheca',
+  webopacnet: 'webopac.net',
+};
+
+const supportedApis = new Set([
+  'sisis',
+  'vufind',
+  'bibliotheca',
+  'open',
+  'webopac.net',
+  'pica',
+  'littera',
+  'biber1992',
+  'primo',
+  'adis',
+  'koha',
+  'iopac',
+  'touchpoint',
+]);
+
+const normalizeProviderApi = (api: string | undefined): string | null => {
+  if (typeof api !== 'string' || api.trim().length === 0) {
+    return null;
+  }
+
+  const normalized = api.trim().toLowerCase();
+  return API_ALIASES[normalized] ?? normalized;
+};
 
 const readJson = async <T>(filePath: string): Promise<T> => {
   const raw = await readFile(filePath, 'utf-8');
@@ -93,9 +121,9 @@ const run = async () => {
 
   const matrix: ProviderHealthRow[] = (registry.providers ?? []).map((provider) => {
     const providerId = provider.id?.trim() || '';
-    const api = provider.api?.toLowerCase().trim() || '';
+    const api = normalizeProviderApi(provider.api);
 
-    if (!supportedApis.has(api)) {
+    if (!api || !supportedApis.has(api)) {
       return {
         providerId,
         status: 'unsupported',
