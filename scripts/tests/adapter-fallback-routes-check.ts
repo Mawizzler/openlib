@@ -181,13 +181,29 @@ const run = async () => {
   }
 
   {
-    const calls: Array<{ url: string; userAgent: string; acceptLanguage: string | null }> = [];
+    const calls: Array<{
+      url: string;
+      userAgent: string;
+      acceptLanguage: string | null;
+      origin: string | null;
+      referer: string | null;
+      secFetchDest: string | null;
+      secFetchMode: string | null;
+      secFetchSite: string | null;
+      secFetchUser: string | null;
+    }> = [];
     globalThis.fetch = async (url, init) => {
       const headers = new Headers(init?.headers);
       calls.push({
         url: String(url),
         userAgent: headers.get('User-Agent') ?? '',
         acceptLanguage: headers.get('Accept-Language'),
+        origin: headers.get('Origin'),
+        referer: headers.get('Referer'),
+        secFetchDest: headers.get('Sec-Fetch-Dest'),
+        secFetchMode: headers.get('Sec-Fetch-Mode'),
+        secFetchSite: headers.get('Sec-Fetch-Site'),
+        secFetchUser: headers.get('Sec-Fetch-User'),
       });
       if (calls.length === 1) {
         return new Response('expired', { status: 419 });
@@ -205,6 +221,18 @@ const run = async () => {
       assert.equal(calls.length, 2, 'expected exactly one retry after HTTP 419');
       assert.equal(calls[0].acceptLanguage, null);
       assert.equal(calls[1].acceptLanguage, 'en-US,en;q=0.9');
+      assert.equal(calls[0].origin, null);
+      assert.equal(calls[1].origin, null);
+      assert.equal(calls[0].referer, null);
+      assert.equal(calls[1].referer, null);
+      assert.equal(calls[0].secFetchDest, null);
+      assert.equal(calls[1].secFetchDest, null);
+      assert.equal(calls[0].secFetchMode, null);
+      assert.equal(calls[1].secFetchMode, null);
+      assert.equal(calls[0].secFetchSite, null);
+      assert.equal(calls[1].secFetchSite, null);
+      assert.equal(calls[0].secFetchUser, null);
+      assert.equal(calls[1].secFetchUser, null);
       assert.equal(calls[0].userAgent, 'openlib-vufind-adapter');
       assert.equal(calls[1].userAgent, 'openlib-vufind-adapter');
     } finally {
@@ -213,7 +241,18 @@ const run = async () => {
   }
 
   {
-    const calls: Array<{ url: string; userAgent: string; acceptLanguage: string | null; cookie: string | null }> = [];
+    const calls: Array<{
+      url: string;
+      userAgent: string;
+      acceptLanguage: string | null;
+      cookie: string | null;
+      origin: string | null;
+      referer: string | null;
+      secFetchDest: string | null;
+      secFetchMode: string | null;
+      secFetchSite: string | null;
+      secFetchUser: string | null;
+    }> = [];
     globalThis.fetch = async (url, init) => {
       const target = String(url);
       const headers = new Headers(init?.headers);
@@ -222,6 +261,12 @@ const run = async () => {
         userAgent: headers.get('User-Agent') ?? '',
         acceptLanguage: headers.get('Accept-Language'),
         cookie: headers.get('Cookie'),
+        origin: headers.get('Origin'),
+        referer: headers.get('Referer'),
+        secFetchDest: headers.get('Sec-Fetch-Dest'),
+        secFetchMode: headers.get('Sec-Fetch-Mode'),
+        secFetchSite: headers.get('Sec-Fetch-Site'),
+        secFetchUser: headers.get('Sec-Fetch-User'),
       });
 
       const pathname = new URL(target).pathname;
@@ -265,10 +310,34 @@ const run = async () => {
       assert.equal(calls[1].cookie, 'SESSION=initial');
       assert.equal(calls[2].cookie, 'SESSION=initial');
       assert.equal(calls[3].cookie, 'SESSION=refreshed');
-      assert.equal(calls[0].acceptLanguage, null);
-      assert.equal(calls[1].acceptLanguage, null);
-      assert.equal(calls[2].acceptLanguage, null);
+      assert.equal(calls[0].acceptLanguage, 'en-US,en;q=0.9');
+      assert.equal(calls[1].acceptLanguage, 'en-US,en;q=0.9');
+      assert.equal(calls[2].acceptLanguage, 'en-US,en;q=0.9');
       assert.equal(calls[3].acceptLanguage, 'en-US,en;q=0.9');
+      assert.equal(calls[0].origin, 'https://vufind.example.org');
+      assert.equal(calls[1].origin, 'https://vufind.example.org');
+      assert.equal(calls[2].origin, 'https://vufind.example.org');
+      assert.equal(calls[3].origin, 'https://vufind.example.org');
+      assert.equal(calls[0].referer, 'https://vufind.example.org/');
+      assert.equal(calls[1].referer, 'https://vufind.example.org/');
+      assert.equal(calls[2].referer, 'https://vufind.example.org/');
+      assert.equal(calls[3].referer, 'https://vufind.example.org/');
+      assert.equal(calls[0].secFetchDest, 'document');
+      assert.equal(calls[1].secFetchDest, 'document');
+      assert.equal(calls[2].secFetchDest, 'document');
+      assert.equal(calls[3].secFetchDest, 'document');
+      assert.equal(calls[0].secFetchMode, 'navigate');
+      assert.equal(calls[1].secFetchMode, 'navigate');
+      assert.equal(calls[2].secFetchMode, 'navigate');
+      assert.equal(calls[3].secFetchMode, 'navigate');
+      assert.equal(calls[0].secFetchSite, 'same-origin');
+      assert.equal(calls[1].secFetchSite, 'same-origin');
+      assert.equal(calls[2].secFetchSite, 'same-origin');
+      assert.equal(calls[3].secFetchSite, 'same-origin');
+      assert.equal(calls[0].secFetchUser, '?1');
+      assert.equal(calls[1].secFetchUser, '?1');
+      assert.equal(calls[2].secFetchUser, '?1');
+      assert.equal(calls[3].secFetchUser, '?1');
       assert.equal(calls[0].userAgent, 'openlib-vufind-adapter');
       assert.equal(calls[1].userAgent, 'openlib-vufind-adapter');
       assert.equal(calls[2].userAgent, 'openlib-vufind-adapter');

@@ -29,6 +29,12 @@ const BROWSER_PROFILE_HEADERS = {
   Pragma: 'no-cache',
   'Upgrade-Insecure-Requests': '1',
 };
+const NAVIGATE_METADATA_HEADERS = {
+  'Sec-Fetch-Dest': 'document',
+  'Sec-Fetch-Mode': 'navigate',
+  'Sec-Fetch-Site': 'same-origin',
+  'Sec-Fetch-User': '?1',
+};
 const META_TITLE_KEYS = ['citation_title', 'dc.title', 'dcterms.title', 'og:title', 'twitter:title'];
 const META_AUTHOR_KEYS = ['citation_author', 'dc.creator', 'dcterms.creator', 'author'];
 const META_DESCRIPTION_KEYS = ['description', 'dc.description', 'dcterms.description', 'og:description'];
@@ -373,19 +379,20 @@ export class VuFindAdapter implements LibrarySystemAdapter {
 
   private async performWarmup(baseUrl: string, session: SessionState): Promise<void> {
     try {
-      await this.fetchHtmlResponse(`${baseUrl}/`, DEFAULT_HEADERS, session);
+      const warmupUrl = `${baseUrl}/`;
+      await this.fetchHtmlResponse(warmupUrl, this.buildRequestHeaders(warmupUrl, false), session);
     } catch {
       // Warmup is best effort; continue search flow even if this preflight fails.
     }
   }
 
   private async fetchHtml(url: string, session?: SessionState): Promise<string> {
-    const firstResponse = await this.fetchHtmlResponse(url, DEFAULT_HEADERS, session);
+    const firstResponse = await this.fetchHtmlResponse(url, this.buildRequestHeaders(url, false), session);
     if (firstResponse.status === 419) {
       if (session && this.isWarmupProvider() && this.provider.baseUrl) {
         await this.performWarmup(this.normalizeBaseUrl(this.provider.baseUrl), session);
       }
-      const retryResponse = await this.fetchHtmlResponse(url, BROWSER_PROFILE_HEADERS, session);
+      const retryResponse = await this.fetchHtmlResponse(url, this.buildRequestHeaders(url, true), session);
       if (!retryResponse.ok) {
         throw new Error(`VuFind request failed with HTTP ${retryResponse.status}`);
       }
@@ -397,6 +404,24 @@ export class VuFindAdapter implements LibrarySystemAdapter {
     }
 
     return await firstResponse.text();
+  }
+
+  private buildRequestHeaders(url: string, isRetry: boolean): Record<string, string> {
+    if (!this.isWarmupProvider()) {
+      return isRetry ? BROWSER_PROFILE_HEADERS : DEFAULT_HEADERS;
+    }
+
+    return this.buildWarmupProviderHeaders(url);
+  }
+
+  private buildWarmupProviderHeaders(url: string): Record<string, string> {
+    const target = new URL(url);
+    return {
+      ...BROWSER_PROFILE_HEADERS,
+      ...NAVIGATE_METADATA_HEADERS,
+      Origin: target.origin,
+      Referer: `${target.origin}/`,
+    };
   }
 
   private async fetchHtmlResponse(
