@@ -18,6 +18,17 @@ import { parseVuFindSearchResults } from '@/src/infrastructure/opac/parsers/vufi
 
 const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_TIMEOUT_MS = 8000;
+const DEFAULT_HEADERS = {
+  Accept: 'text/html,application/xhtml+xml',
+  'User-Agent': 'openlib-vufind-adapter',
+};
+const BROWSER_PROFILE_HEADERS = {
+  ...DEFAULT_HEADERS,
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Cache-Control': 'max-age=0',
+  Pragma: 'no-cache',
+  'Upgrade-Insecure-Requests': '1',
+};
 const META_TITLE_KEYS = ['citation_title', 'dc.title', 'dcterms.title', 'og:title', 'twitter:title'];
 const META_AUTHOR_KEYS = ['citation_author', 'dc.creator', 'dcterms.creator', 'author'];
 const META_DESCRIPTION_KEYS = ['description', 'dc.description', 'dcterms.description', 'og:description'];
@@ -348,25 +359,33 @@ export class VuFindAdapter implements LibrarySystemAdapter {
   }
 
   private async fetchHtml(url: string): Promise<string> {
+    const firstResponse = await this.fetchHtmlResponse(url, DEFAULT_HEADERS);
+    if (firstResponse.status === 419) {
+      const retryResponse = await this.fetchHtmlResponse(url, BROWSER_PROFILE_HEADERS);
+      if (!retryResponse.ok) {
+        throw new Error(`VuFind request failed with HTTP ${retryResponse.status}`);
+      }
+      return await retryResponse.text();
+    }
+
+    if (!firstResponse.ok) {
+      throw new Error(`VuFind request failed with HTTP ${firstResponse.status}`);
+    }
+
+    return await firstResponse.text();
+  }
+
+  private async fetchHtmlResponse(url: string, headers: Record<string, string>): Promise<Response> {
     const controller = new AbortController();
     const handle = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
     try {
-      const response = await fetch(url, {
+      return await fetch(url, {
         method: 'GET',
-        headers: {
-          Accept: 'text/html,application/xhtml+xml',
-          'User-Agent': 'openlib-vufind-adapter',
-        },
+        headers,
         redirect: 'follow',
         signal: controller.signal,
       });
-
-      if (!response.ok) {
-        throw new Error(`VuFind request failed with HTTP ${response.status}`);
-      }
-
-      return await response.text();
     } finally {
       clearTimeout(handle);
     }

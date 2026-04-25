@@ -160,6 +160,7 @@ export class AdisAdapter implements LibrarySystemAdapter {
 
   private async fetchSearchPayload(query: string, page: number): Promise<FetchCandidateResult> {
     const attempts: string[] = [];
+    const exhausted404Families = new Set<string>();
     const baseUrl = this.normalizeBaseUrl();
     const { candidates } = buildAdapterFallbackRoutes({
       system: this.system,
@@ -171,6 +172,11 @@ export class AdisAdapter implements LibrarySystemAdapter {
     });
 
     for (const candidate of candidates) {
+      const family = this.pathnameFamily(candidate.url);
+      if (family && exhausted404Families.has(family)) {
+        continue;
+      }
+
       try {
         const payload = await this.fetchCandidate(candidate.url);
         return { url: candidate.url, payload };
@@ -180,10 +186,21 @@ export class AdisAdapter implements LibrarySystemAdapter {
         if (!isHttp404Error(error)) {
           throw error;
         }
+        if (family) {
+          exhausted404Families.add(family);
+        }
       }
     }
 
     throw new Error(`ADIS search failed for all candidate endpoints. ${attempts.join(' | ')}`);
+  }
+
+  private pathnameFamily(url: string): string | null {
+    try {
+      return new URL(url).pathname.replace(/\/+$/, '').toLowerCase();
+    } catch {
+      return null;
+    }
   }
 
   private async fetchCandidate(url: string): Promise<AdisSearchPayload> {
