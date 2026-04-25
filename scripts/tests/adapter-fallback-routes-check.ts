@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
+import { AdisAdapter } from '@/src/infrastructure/opac/adapters/AdisAdapter';
+import { VuFindAdapter } from '@/src/infrastructure/opac/adapters/VuFindAdapter';
 import { WebOpacNetAdapter } from '@/src/infrastructure/opac/adapters/WebOpacNetAdapter';
 import {
   buildAdapterFallbackRoutes,
@@ -142,6 +144,68 @@ const run = async () => {
     assert.ok(calls[1].includes('SEARCHTERM=climate'));
   } finally {
     globalThis.fetch = originalFetch;
+  }
+
+  {
+    const calls: string[] = [];
+    globalThis.fetch = async (url) => {
+      const target = String(url);
+      calls.push(target);
+      const pathname = new URL(target).pathname;
+      if (pathname !== '/Search/Results') {
+        return new Response('missing', { status: 404 });
+      }
+
+      return new Response('{"total":1,"records":[{"id":"adis-1","title":"Climate"}]}', {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    try {
+      const adapter = new AdisAdapter(provider('adis'));
+      const result = await adapter.search({ query: 'climate', page: 1 });
+      assert.equal(result.records.length, 1);
+      assert.equal(calls.length, 4, 'expected one ADIS 404 attempt per pathname family');
+      assert.deepEqual(
+        calls.map((entry) => new URL(entry).pathname),
+        ['/search.json', '/search', '/api/search', '/Search/Results'],
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  }
+
+  {
+    const calls: Array<{ url: string; userAgent: string; acceptLanguage: string | null }> = [];
+    globalThis.fetch = async (url, init) => {
+      const headers = new Headers(init?.headers);
+      calls.push({
+        url: String(url),
+        userAgent: headers.get('User-Agent') ?? '',
+        acceptLanguage: headers.get('Accept-Language'),
+      });
+      if (calls.length === 1) {
+        return new Response('expired', { status: 419 });
+      }
+      return new Response('<html><body><div class="result"><a href="/Record/1">Hit</a></div></body></html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      });
+    };
+
+    try {
+      const adapter = new VuFindAdapter(provider('vufind', 'https://vufind.example.org'));
+      const result = await adapter.search({ query: 'climate', page: 1 });
+      assert.equal(result.records.length, 1);
+      assert.equal(calls.length, 2, 'expected exactly one retry after HTTP 419');
+      assert.equal(calls[0].acceptLanguage, null);
+      assert.equal(calls[1].acceptLanguage, 'en-US,en;q=0.9');
+      assert.equal(calls[0].userAgent, 'openlib-vufind-adapter');
+      assert.equal(calls[1].userAgent, 'openlib-vufind-adapter');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   }
 };
 
