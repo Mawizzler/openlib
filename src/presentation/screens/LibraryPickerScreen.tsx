@@ -20,25 +20,52 @@ type LibraryPickerScreenProps = {
 const normalizeQuery = (value: string) => value.trim().toLowerCase();
 
 const formatLocation = (provider: OpacappNormalizedProvider) => {
-  const parts = [provider.city, provider.state, provider.country].filter(Boolean);
+  const parts = [
+    provider.location?.city,
+    provider.location?.state,
+    provider.location?.country,
+  ].filter(Boolean);
   return parts.join(', ');
 };
 
-const filterAndSortProviders = (providers: OpacappNormalizedProvider[], query: string) => {
+type IndexedProvider = {
+  provider: OpacappNormalizedProvider;
+  location: string;
+  searchText: string;
+};
+
+const buildSearchText = (provider: OpacappNormalizedProvider, location: string) =>
+  [
+    provider.id,
+    provider.title,
+    provider.api,
+    location,
+    provider.source.file,
+    provider.source.path,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+const indexProviders = (providers: OpacappNormalizedProvider[]): IndexedProvider[] =>
+  providers
+    .map((provider) => {
+      const location = formatLocation(provider);
+      return {
+        provider,
+        location,
+        searchText: buildSearchText(provider, location),
+      };
+    })
+    .sort((left, right) => left.provider.title.localeCompare(right.provider.title));
+
+const filterProviders = (providers: IndexedProvider[], query: string) => {
   const normalizedQuery = normalizeQuery(query);
   if (!normalizedQuery) {
-    return [...providers].sort((left, right) => left.title.localeCompare(right.title));
+    return providers;
   }
 
-  return providers
-    .filter((provider) => {
-      const haystack = [provider.id, provider.title, provider.city, provider.state, provider.country]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return haystack.includes(normalizedQuery);
-    })
-    .sort((left, right) => left.title.localeCompare(right.title));
+  return providers.filter(({ searchText }) => searchText.includes(normalizedQuery));
 };
 
 const getHealthLabel = (provider: OpacappNormalizedProvider, isActive: boolean) => {
@@ -78,9 +105,10 @@ export function LibraryPickerScreen({ onClose }: LibraryPickerScreenProps) {
   const [query, setQuery] = useState('');
 
   const providers = useMemo(() => providersRegistryRepository.listProviders(), []);
+  const indexedProviders = useMemo(() => indexProviders(providers), [providers]);
   const filteredProviders = useMemo(
-    () => filterAndSortProviders(providers, query),
-    [providers, query],
+    () => filterProviders(indexedProviders, query),
+    [indexedProviders, query],
   );
 
   const handleSelect = async (provider: OpacappNormalizedProvider) => {
@@ -90,45 +118,54 @@ export function LibraryPickerScreen({ onClose }: LibraryPickerScreenProps) {
 
   const handleSubmit = async () => {
     if (filteredProviders.length === 1) {
-      await handleSelect(filteredProviders[0]);
+      await handleSelect(filteredProviders[0].provider);
       return;
     }
     Keyboard.dismiss();
   };
 
   return (
-    <ScreenLayout scrollable contentStyle={styles.content}>
-      <ScreenHeader
-        title="Choose your library"
-        subtitle="Search by name, city, or provider ID."
-        onBack={onClose}
-      />
-
-      <Card>
-        <Input
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search by name, city, or ID"
-          returnKeyType="search"
-          onSubmitEditing={handleSubmit}
-        />
-      </Card>
-
+    <ScreenLayout contentStyle={styles.content}>
       <FlatList
         data={filteredProviders}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.provider.id}
         keyboardShouldPersistTaps="handled"
-        scrollEnabled={false}
+        style={styles.list}
         contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          <View style={styles.headerContent}>
+            <ScreenHeader
+              title="Choose your library"
+              subtitle="Search by name, city, country, provider ID, or source file."
+              onBack={onClose}
+            />
+
+            <Card>
+              <Input
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Search by name, city, or ID"
+                returnKeyType="search"
+                onSubmitEditing={handleSubmit}
+              />
+            </Card>
+          </View>
+        }
         renderItem={({ item }) => {
-          const isActive = item.id === activeLibraryId;
+          const { provider, location } = item;
+          const isActive = provider.id === activeLibraryId;
           return (
-            <TouchableOpacity onPress={() => handleSelect(item)} style={styles.row}>
+            <TouchableOpacity onPress={() => handleSelect(provider)} style={styles.row}>
               <View style={styles.rowContent}>
-                <Text style={styles.rowTitle}>{item.title}</Text>
-                <Text style={styles.rowMeta}>{formatLocation(item) || item.api}</Text>
+                <Text style={styles.rowTitle}>{provider.title}</Text>
+                <Text style={styles.rowMeta}>
+                  {location ? `${location} - ${provider.api}` : provider.api}
+                </Text>
               </View>
-              <Badge label={getHealthLabel(item, isActive)} tone={getHealthBadgeTone(item, isActive)} />
+              <Badge
+                label={getHealthLabel(provider, isActive)}
+                tone={getHealthBadgeTone(provider, isActive)}
+              />
             </TouchableOpacity>
           );
         }}
@@ -152,10 +189,18 @@ export function LibraryPickerScreen({ onClose }: LibraryPickerScreenProps) {
 const createStyles = (palette: AppPalette) =>
   StyleSheet.create({
     content: {
-      paddingBottom: 24,
+      paddingBottom: 0,
+    },
+    list: {
+      flex: 1,
     },
     listContent: {
       gap: 10,
+      paddingBottom: 24,
+    },
+    headerContent: {
+      gap: 20,
+      marginBottom: 10,
     },
     row: {
       flexDirection: 'row',

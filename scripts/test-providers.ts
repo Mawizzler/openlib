@@ -26,6 +26,7 @@ const supportedApis = new Set<string>([
   'bibliocommons',
   'pika',
   'open',
+  'sisis',
   'bibliotheca',
   'webopac.net',
   'primo',
