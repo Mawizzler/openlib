@@ -32,15 +32,21 @@ const normalizeBaseUrl = (baseUrl: string) => baseUrl.trim().replace(/\/+$/, '')
 const hasHttpScheme = (baseUrl: string) => /^http:\/\//i.test(baseUrl.trim());
 const toHttpsBaseUrl = (baseUrl: string) => baseUrl.trim().replace(/^http:\/\//i, 'https://');
 
+type RouteQueryParams = Record<string, string> | ReadonlyArray<readonly [string, string]>;
+
 const route = (
   system: AdapterFallbackSystem,
   routeName: string,
   baseUrl: string,
   pathname: string,
-  params: Record<string, string>,
+  params: RouteQueryParams,
 ): AdapterFallbackRouteCandidate => {
   const url = new URL(pathname, `${normalizeBaseUrl(baseUrl)}/`);
-  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+  if (Array.isArray(params)) {
+    params.forEach(([key, value]) => url.searchParams.append(key, value));
+  } else {
+    Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+  }
   return { system, route: routeName, url: url.toString() };
 };
 
@@ -160,16 +166,67 @@ const primoRoutes = (input: AdapterFallbackRouteInput): AdapterFallbackRouteCand
 
 const adisRoutes = (input: AdapterFallbackRouteInput): AdapterFallbackRouteCandidate[] => {
   const { baseUrl, query, page, pageSize, providerId, system } = input;
+  if (String(providerId) === '9023') {
+    const directParams: Array<{
+      routeName: string;
+      params: ReadonlyArray<readonly [string, string]>;
+    }> = [
+      {
+        routeName: 'adis-9023-direct-home-searchform-freitext',
+        params: [
+          ['service', 'direct/0/Home/$SearchForm'],
+          ['searchMask', ''],
+          ['XSLT_DB', '10'],
+          ['sp', 'SBF'],
+          ['sp', 'SAKFreitext'],
+          ['sp', `S${query}`],
+        ],
+      },
+      {
+        routeName: 'adis-9023-direct-home-searchform-stichwort',
+        params: [
+          ['service', 'direct/0/Home/$SearchForm'],
+          ['searchMask', ''],
+          ['XSLT_DB', '10'],
+          ['sp', 'SBF'],
+          ['sp', 'SAKSW'],
+          ['sp', `S${query}`],
+        ],
+      },
+      {
+        routeName: 'adis-9023-direct-home-directlink-freitext',
+        params: [
+          ['service', 'direct/0/Home/$DirectLink'],
+          ['searchMask', ''],
+          ['XSLT_DB', '10'],
+          ['sp', 'SBF'],
+          ['sp', 'SAKFreitext'],
+          ['sp', `S${query}`],
+        ],
+      },
+      {
+        routeName: 'adis-9023-direct-home-directlink-stichwort',
+        params: [
+          ['service', 'direct/0/Home/$DirectLink'],
+          ['searchMask', ''],
+          ['XSLT_DB', '10'],
+          ['sp', 'SBF'],
+          ['sp', 'SAKSW'],
+          ['sp', `S${query}`],
+        ],
+      },
+    ];
+
+    return directParams.map((entry) => route(system, entry.routeName, baseUrl, '.', entry.params));
+  }
+
   const params: Record<string, string>[] = [
     { q: query, page: String(page), limit: String(pageSize) },
     { query, page: String(page), limit: String(pageSize) },
     { lookfor: query, page: String(page), limit: String(pageSize) },
     { search: query, page: String(page), limit: String(pageSize) },
   ];
-  const useRelativePathnames = String(providerId) === '9023';
-  const pathnames = useRelativePathnames
-    ? ['search.json', 'search', 'api/search', 'Search/Results']
-    : ['/search.json', '/search', '/api/search', '/Search/Results'];
+  const pathnames = ['/search.json', '/search', '/api/search', '/Search/Results'];
 
   return pathnames.flatMap((pathname) =>
     params.map((entry, index) =>

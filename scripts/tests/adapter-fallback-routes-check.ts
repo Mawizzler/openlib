@@ -123,14 +123,20 @@ const run = async () => {
   assert.equal(adisHttpRoutes.length, 16);
   assert.ok(adisHttpRoutes.every((url) => url.startsWith('http://')));
   const adisProvider9023Routes = routeUrls('adis', 'https://catalog.example.org/aDISWeb/app', '9023');
+  assert.equal(adisProvider9023Routes.length, 4);
   assert.ok(
-    adisProvider9023Routes.every((url) => new URL(url).pathname.startsWith('/aDISWeb/app/')),
-    'expected provider 9023 ADIS routes to preserve /aDISWeb/app base path',
+    adisProvider9023Routes.every((url) => new URL(url).pathname.startsWith('/aDISWeb/app')),
+    'expected provider 9023 ADIS routes to keep aDISWeb app path',
   );
   assert.equal(
     adisProvider9023Routes[0],
-    'https://catalog.example.org/aDISWeb/app/search.json?q=climate&page=2&limit=20',
+    'https://catalog.example.org/aDISWeb/app/?service=direct%2F0%2FHome%2F%24SearchForm&searchMask=&XSLT_DB=10&sp=SBF&sp=SAKFreitext&sp=Sclimate',
   );
+  const first9023Url = new URL(adisProvider9023Routes[0]);
+  assert.deepEqual(first9023Url.searchParams.getAll('sp'), ['SBF', 'SAKFreitext', 'Sclimate']);
+  assert.equal(first9023Url.searchParams.get('service'), 'direct/0/Home/$SearchForm');
+  assert.equal(first9023Url.searchParams.get('searchMask'), '');
+  assert.equal(first9023Url.searchParams.get('XSLT_DB'), '10');
   const adisNon9023Routes = routeUrls('adis', 'https://catalog.example.org/aDISWeb/app', '9010');
   assert.ok(
     adisNon9023Routes.every((url) => !new URL(url).pathname.startsWith('/aDISWeb/app/')),
@@ -189,6 +195,41 @@ const run = async () => {
       assert.deepEqual(
         calls.map((entry) => new URL(entry).pathname),
         ['/search.json', '/search', '/api/search', '/Search/Results'],
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  }
+
+  {
+    const calls: string[] = [];
+    globalThis.fetch = async (url) => {
+      const target = String(url);
+      calls.push(target);
+      const parsed = new URL(target);
+      const service = parsed.searchParams.get('service');
+      const sp = parsed.searchParams.getAll('sp');
+      if (service !== 'direct/0/Home/$DirectLink' || sp[1] !== 'SAKFreitext') {
+        return new Response('missing', { status: 404 });
+      }
+
+      return new Response('{"total":1,"records":[{"id":"adis-9023","title":"Climate"}]}', {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    try {
+      const adapter = new AdisAdapter(
+        provider('adis', 'https://catalog.example.org/aDISWeb/app', '9023'),
+      );
+      const result = await adapter.search({ query: 'climate', page: 1 });
+      assert.equal(result.records.length, 1);
+      assert.equal(calls.length, 3, 'expected 9023 ADIS to try distinct query families on same pathname');
+      assert.ok(calls.every((entry) => new URL(entry).pathname.startsWith('/aDISWeb/app')));
+      assert.deepEqual(
+        calls.map((entry) => new URL(entry).searchParams.get('service')),
+        ['direct/0/Home/$SearchForm', 'direct/0/Home/$SearchForm', 'direct/0/Home/$DirectLink'],
       );
     } finally {
       globalThis.fetch = originalFetch;
