@@ -1,4 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { ActiveLibraryProvider } from '@/src/application/state/ActiveLibraryStore';
@@ -10,17 +11,19 @@ import '@/global.css';
 
 export default function App() {
   return (
-    <GluestackUIProvider mode="system">
-      <ActiveLibraryProvider>
-        <AccountSessionProvider>
-          <ReminderPreferencesProvider>
-            <ReminderStateProvider>
-              <AppNavigator />
-              <StatusBar style="auto" />
-            </ReminderStateProvider>
-          </ReminderPreferencesProvider>
-        </AccountSessionProvider>
-      </ActiveLibraryProvider>
-    </GluestackUIProvider>
+    <SafeAreaProvider>
+      <GluestackUIProvider mode="system">
+        <ActiveLibraryProvider>
+          <AccountSessionProvider>
+            <ReminderPreferencesProvider>
+              <ReminderStateProvider>
+                <AppNavigator />
+                <StatusBar style="auto" />
+              </ReminderStateProvider>
+            </ReminderPreferencesProvider>
+          </AccountSessionProvider>
+        </ActiveLibraryProvider>
+      </GluestackUIProvider>
+    </SafeAreaProvider>
   );
 }
