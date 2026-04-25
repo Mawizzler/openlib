@@ -325,7 +325,7 @@ const run = async () => {
     const validation = validateProvider(provider);
     const baseUrlValue = isNonEmptyString(provider.baseUrl) ? provider.baseUrl : null;
     const normalization = baseUrlValue
-      ? normalizeProviderBaseUrl(baseUrlValue)
+      ? normalizeProviderBaseUrl(baseUrlValue, { api: provider.api, providerId: provider.id })
       : { normalizedUrl: null, reasons: [] as string[], rewritten: false };
     const normalizedUrl = normalization.normalizedUrl;
 

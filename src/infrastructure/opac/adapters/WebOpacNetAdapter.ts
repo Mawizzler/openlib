@@ -8,9 +8,10 @@ import type {
 import type { OpacAvailability, OpacRecord, OpacSearchResult } from '@/src/domain/models/opac';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { parseWebOpacNetSearchResults } from '@/src/infrastructure/opac/parsers/webopacnet/parseWebOpacNetSearchResults';
+import { fetchTextWithRetry } from '@/src/infrastructure/opac/transport/fetchWithRetry';
+import { normalizeProviderBaseUrl } from '@/src/infrastructure/opac/transport/normalizeProviderBaseUrl';
 
 const DEFAULT_PAGE_SIZE = 20;
-const DEFAULT_TIMEOUT_MS = 8000;
 
 export class WebOpacNetAdapter implements LibrarySystemAdapter {
   readonly system = 'webopac.net';
@@ -74,7 +75,10 @@ export class WebOpacNetAdapter implements LibrarySystemAdapter {
 
   private normalizeBaseUrl() {
     const candidate = this.provider.baseUrl?.trim() || '';
-    return candidate.replace(/\/+$/, '');
+    return (
+      normalizeProviderBaseUrl(candidate, { api: this.system, providerId: this.provider.id }).normalizedUrl ??
+      candidate
+    ).replace(/\/+$/, '');
   }
 
   private buildSearchUrl(query: string, page: number) {
@@ -87,22 +91,8 @@ export class WebOpacNetAdapter implements LibrarySystemAdapter {
   }
 
   private async fetchText(url: string): Promise<string> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-
-    try {
-      const response = await fetch(url, {
-        headers: { Accept: 'text/html,application/xhtml+xml' },
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`webopac.net search request failed with HTTP ${response.status}`);
-      }
-
-      return await response.text();
-    } finally {
-      clearTimeout(timeout);
-    }
+    return await fetchTextWithRetry(url, {
+      headers: { Accept: 'text/html,application/xhtml+xml' },
+    });
   }
 }

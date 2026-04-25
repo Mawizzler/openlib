@@ -56,4 +56,79 @@ assert.ok(
   'expected non-rewrite LMS/CMS reason',
 );
 
+const rewrittenLeipzig = normalizeProviderBaseUrl('https://webopac.stadtbibliothek-leipzig.de/start.do', {
+  api: 'sisis',
+  providerId: '8714',
+});
+assert.equal(rewrittenLeipzig.normalizedUrl, 'https://bibliothekskatalog.leipzig.de/');
+assert.equal(rewrittenLeipzig.rewritten, true);
+assert.equal(rewrittenLeipzig.rewriteFromHost, 'webopac.stadtbibliothek-leipzig.de');
+assert.equal(rewrittenLeipzig.rewriteToHost, 'bibliothekskatalog.leipzig.de');
+assert.ok(
+  rewrittenLeipzig.reasons.includes(
+    'rewrote deterministic redirect-family host: webopac.stadtbibliothek-leipzig.de -> bibliothekskatalog.leipzig.de',
+  ),
+  'expected Leipzig deterministic host rewrite reason',
+);
+assert.ok(
+  rewrittenLeipzig.reasons.includes('stripped sisis API endpoint path from base URL'),
+  'expected SISIS endpoint strip reason',
+);
+
+const strippedPrimo = normalizeProviderBaseUrl('https://catalog.example.edu/primo_library/libweb/action/search.do?vid=default', {
+  api: 'primo',
+  providerId: 'primo-test',
+});
+assert.equal(strippedPrimo.normalizedUrl, 'https://catalog.example.edu/');
+assert.ok(
+  strippedPrimo.reasons.includes('stripped primo API endpoint path from base URL'),
+  'expected Primo endpoint strip reason',
+);
+
+const strippedKoha = normalizeProviderBaseUrl('https://koha.example.org/cgi-bin/koha/opac-search.pl?q=test', {
+  api: 'koha',
+  providerId: 'koha-test',
+});
+assert.equal(strippedKoha.normalizedUrl, 'https://koha.example.org/');
+assert.ok(
+  strippedKoha.reasons.includes('stripped koha API endpoint path from base URL'),
+  'expected Koha endpoint strip reason',
+);
+
+const strippedWebOpacNet = normalizeProviderBaseUrl('https://webopac.example.org/search.aspx?STICHWORT=test', {
+  api: 'webopacnet',
+  providerId: 'webopac-test',
+});
+assert.equal(strippedWebOpacNet.normalizedUrl, 'https://webopac.example.org/');
+assert.ok(
+  strippedWebOpacNet.reasons.includes('stripped webopac.net API endpoint path from base URL'),
+  'expected webopac.net endpoint strip reason',
+);
+
+const strippedOpenSearchJson = normalizeProviderBaseUrl('https://open.example.org/search.json?q=test', {
+  api: 'open',
+  providerId: 'open-test',
+});
+assert.equal(strippedOpenSearchJson.normalizedUrl, 'https://open.example.org/');
+assert.ok(
+  strippedOpenSearchJson.reasons.includes('stripped open API endpoint path from base URL'),
+  'expected Open search.json endpoint strip reason',
+);
+
+const strippedOpenMediensuche = normalizeProviderBaseUrl('https://open.example.org/Mediensuche/EinfacheSuche.aspx', {
+  api: 'open',
+  providerId: 'open-test',
+});
+assert.equal(strippedOpenMediensuche.normalizedUrl, 'https://open.example.org/');
+
+const strippedAdis = normalizeProviderBaseUrl('https://adis.example.org/api/search?query=test', {
+  api: 'adis',
+  providerId: 'adis-test',
+});
+assert.equal(strippedAdis.normalizedUrl, 'https://adis.example.org/');
+assert.ok(
+  strippedAdis.reasons.includes('stripped adis API endpoint path from base URL'),
+  'expected ADIS endpoint strip reason',
+);
+
 console.log('provider-url-normalization-check: all assertions passed');
