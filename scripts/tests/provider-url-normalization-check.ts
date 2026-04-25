@@ -60,7 +60,7 @@ const rewrittenLeipzig = normalizeProviderBaseUrl('https://webopac.stadtbiblioth
   api: 'sisis',
   providerId: '8714',
 });
-assert.equal(rewrittenLeipzig.normalizedUrl, 'https://bibliothekskatalog.leipzig.de/');
+assert.equal(rewrittenLeipzig.normalizedUrl, 'https://bibliothekskatalog.leipzig.de/webOPACClient');
 assert.equal(rewrittenLeipzig.rewritten, true);
 assert.equal(rewrittenLeipzig.rewriteFromHost, 'webopac.stadtbibliothek-leipzig.de');
 assert.equal(rewrittenLeipzig.rewriteToHost, 'bibliothekskatalog.leipzig.de');
@@ -71,8 +71,27 @@ assert.ok(
   'expected Leipzig deterministic host rewrite reason',
 );
 assert.ok(
-  rewrittenLeipzig.reasons.includes('stripped sisis API endpoint path from base URL'),
-  'expected SISIS endpoint strip reason',
+  rewrittenLeipzig.reasons.includes('preserved Leipzig SISIS /webOPACClient base path'),
+  'expected Leipzig /webOPACClient preservation reason',
+);
+
+const rewrittenLeipzigNestedEndpoint = normalizeProviderBaseUrl(
+  'https://webopac.stadtbibliothek-leipzig.de/webOPACClient/search.do?methodToCall=quickSearch',
+  {
+    api: 'sisis',
+    providerId: '8714',
+  },
+);
+assert.equal(rewrittenLeipzigNestedEndpoint.normalizedUrl, 'https://bibliothekskatalog.leipzig.de/webOPACClient');
+
+const rewrittenLeipzigOtherProvider = normalizeProviderBaseUrl('https://webopac.stadtbibliothek-leipzig.de/start.do', {
+  api: 'sisis',
+  providerId: 'sisis-test',
+});
+assert.equal(rewrittenLeipzigOtherProvider.normalizedUrl, 'https://bibliothekskatalog.leipzig.de/');
+assert.ok(
+  rewrittenLeipzigOtherProvider.reasons.includes('stripped sisis API endpoint path from base URL'),
+  'expected generic SISIS endpoint strip reason for non-Leipzig provider',
 );
 
 const strippedPrimo = normalizeProviderBaseUrl('https://catalog.example.edu/primo_library/libweb/action/search.do?vid=default', {
