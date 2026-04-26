@@ -172,6 +172,46 @@ const adisRoutes = (input: AdapterFallbackRouteInput): AdapterFallbackRouteCandi
       params: ReadonlyArray<readonly [string, string]>;
     }> = [
       {
+        routeName: 'adis-9023-direct-home-searchform-freitext-sopac00-combined',
+        params: [
+          ['service', 'direct/0/Home/$SearchForm'],
+          ['searchMask', ''],
+          ['XSLT_DB', '10'],
+          ['sp', 'SOPAC00'],
+          ['sp', `SAKFreitext S${query}`],
+        ],
+      },
+      {
+        routeName: 'adis-9023-direct-home-searchform-stichwort-sopac00-combined',
+        params: [
+          ['service', 'direct/0/Home/$SearchForm'],
+          ['searchMask', ''],
+          ['XSLT_DB', '10'],
+          ['sp', 'SOPAC00'],
+          ['sp', `SAKSW S${query}`],
+        ],
+      },
+      {
+        routeName: 'adis-9023-direct-home-directlink-freitext-sopac00-combined',
+        params: [
+          ['service', 'direct/0/Home/$DirectLink'],
+          ['searchMask', ''],
+          ['XSLT_DB', '10'],
+          ['sp', 'SOPAC00'],
+          ['sp', `SAKFreitext S${query}`],
+        ],
+      },
+      {
+        routeName: 'adis-9023-direct-home-directlink-stichwort-sopac00-combined',
+        params: [
+          ['service', 'direct/0/Home/$DirectLink'],
+          ['searchMask', ''],
+          ['XSLT_DB', '10'],
+          ['sp', 'SOPAC00'],
+          ['sp', `SAKSW S${query}`],
+        ],
+      },
+      {
         routeName: 'adis-9023-direct-home-searchform-freitext',
         params: [
           ['service', 'direct/0/Home/$SearchForm'],

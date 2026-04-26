@@ -123,17 +123,17 @@ const run = async () => {
   assert.equal(adisHttpRoutes.length, 16);
   assert.ok(adisHttpRoutes.every((url) => url.startsWith('http://')));
   const adisProvider9023Routes = routeUrls('adis', 'https://catalog.example.org/aDISWeb/app', '9023');
-  assert.equal(adisProvider9023Routes.length, 4);
+  assert.equal(adisProvider9023Routes.length, 8);
   assert.ok(
     adisProvider9023Routes.every((url) => new URL(url).pathname.startsWith('/aDISWeb/app')),
     'expected provider 9023 ADIS routes to keep aDISWeb app path',
   );
   assert.equal(
     adisProvider9023Routes[0],
-    'https://catalog.example.org/aDISWeb/app/?service=direct%2F0%2FHome%2F%24SearchForm&searchMask=&XSLT_DB=10&sp=SBF&sp=SAKFreitext&sp=Sclimate',
+    'https://catalog.example.org/aDISWeb/app/?service=direct%2F0%2FHome%2F%24SearchForm&searchMask=&XSLT_DB=10&sp=SOPAC00&sp=SAKFreitext+Sclimate',
   );
   const first9023Url = new URL(adisProvider9023Routes[0]);
-  assert.deepEqual(first9023Url.searchParams.getAll('sp'), ['SBF', 'SAKFreitext', 'Sclimate']);
+  assert.deepEqual(first9023Url.searchParams.getAll('sp'), ['SOPAC00', 'SAKFreitext Sclimate']);
   assert.equal(first9023Url.searchParams.get('service'), 'direct/0/Home/$SearchForm');
   assert.equal(first9023Url.searchParams.get('searchMask'), '');
   assert.equal(first9023Url.searchParams.get('XSLT_DB'), '10');
@@ -209,7 +209,7 @@ const run = async () => {
       const parsed = new URL(target);
       const service = parsed.searchParams.get('service');
       const sp = parsed.searchParams.getAll('sp');
-      if (service !== 'direct/0/Home/$DirectLink' || sp[1] !== 'SAKFreitext') {
+      if (service !== 'direct/0/Home/$DirectLink' || sp[1] !== 'SAKFreitext Sclimate') {
         return new Response('missing', { status: 404 });
       }
 
