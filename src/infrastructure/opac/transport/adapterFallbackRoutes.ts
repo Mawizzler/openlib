@@ -1,4 +1,4 @@
-export type AdapterFallbackSystem = 'open' | 'webopac.net' | 'sisis' | 'primo' | 'adis' | 'koha';
+export type AdapterFallbackSystem = 'open' | 'webopac.net' | 'sisis' | 'primo' | 'adis' | 'koha' | 'bibliotheca';
 
 export type AdapterFallbackRouteCandidate = {
   system: AdapterFallbackSystem;
@@ -108,6 +108,106 @@ const webOpacNetRoutes = (input: AdapterFallbackRouteInput): AdapterFallbackRout
       Seite: String(page),
     }),
   ];
+};
+
+const normalizeBibliothecaBaseUrl = (baseUrl: string): string => {
+  const normalizedBase = normalizeBaseUrl(baseUrl);
+  let parsed: URL;
+  try {
+    parsed = new URL(normalizedBase);
+  } catch {
+    return normalizedBase;
+  }
+
+  const trimmedPathname = parsed.pathname.replace(/\/+$/, '');
+  const strippedPathname = trimmedPathname
+    .replace(/\/Mediensuche(?:\/.*)?$/i, '')
+    .replace(/\/(?:index\.aspx|EinfacheSuche(?:\.aspx)?|Suche|Suchergebnis)$/i, '');
+
+  parsed.pathname = strippedPathname || '/';
+  parsed.search = '';
+  parsed.hash = '';
+  return normalizeBaseUrl(parsed.toString());
+};
+
+const bibliothecaRoute = (
+  system: AdapterFallbackSystem,
+  routeName: string,
+  targetUrl: string,
+  params: RouteQueryParams,
+): AdapterFallbackRouteCandidate => {
+  const url = new URL(normalizeBaseUrl(targetUrl));
+  if (Array.isArray(params)) {
+    params.forEach(([key, value]) => url.searchParams.append(key, value));
+  } else {
+    Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+  }
+  return { system, route: routeName, url: url.toString() };
+};
+
+const bibliothecaRoutes = (input: AdapterFallbackRouteInput): AdapterFallbackRouteCandidate[] => {
+  const { baseUrl, query, page, pageSize, system } = input;
+  const startHit = Math.max(1, (page - 1) * pageSize + 1);
+  const root = normalizeBibliothecaBaseUrl(baseUrl);
+  const lowerRoot = root.toLowerCase();
+  const rootPath = (() => {
+    try {
+      return new URL(root).pathname.toLowerCase().replace(/\/+$/, '');
+    } catch {
+      return '';
+    }
+  })();
+  const hasTenantPath = Boolean(rootPath && rootPath !== '/' && rootPath !== '/webopac');
+
+  const roots = [
+    root,
+    ...(hasTenantPath || lowerRoot.includes('/webopac') ? [] : [`${root}/webopac`]),
+    ...(lowerRoot.includes('/mediensuche') ? [] : [`${root}/Mediensuche`]),
+  ];
+
+  return roots.flatMap((candidateRoot) => {
+    const normalizedRoot = normalizeBaseUrl(candidateRoot);
+    const rootHasMediensuche = normalizedRoot.toLowerCase().endsWith('/mediensuche');
+    const medienPrefix = rootHasMediensuche ? normalizedRoot : `${normalizedRoot}/Mediensuche`;
+
+    return [
+      bibliothecaRoute(system, 'bibliotheca-mediensuche-einfachesuche-hash', `${medienPrefix}/EinfacheSuche`, {
+        searchhash: '',
+        top: 'y',
+        detail: '0',
+        search: query,
+      }),
+      bibliothecaRoute(system, 'bibliotheca-mediensuche-einfachesuche', `${medienPrefix}/EinfacheSuche`, {
+        search: query,
+      }),
+      bibliothecaRoute(system, 'bibliotheca-mediensuche-root', medienPrefix, { search: query }),
+      bibliothecaRoute(system, 'bibliotheca-mediensuche-suche', `${medienPrefix}/Suche`, { search: query }),
+      bibliothecaRoute(system, 'bibliotheca-mediensuche-suchergebnis-page', `${medienPrefix}/Suchergebnis`, {
+        search: query,
+        startHit: String(startHit),
+      }),
+      bibliothecaRoute(system, 'bibliotheca-mediensuche-suchergebnis', `${medienPrefix}/Suchergebnis`, {
+        search: query,
+      }),
+      bibliothecaRoute(system, 'bibliotheca-root-einfachesuche-hash', `${normalizedRoot}/EinfacheSuche`, {
+        searchhash: '',
+        top: 'y',
+        detail: '0',
+        search: query,
+      }),
+      bibliothecaRoute(system, 'bibliotheca-root-einfachesuche', `${normalizedRoot}/EinfacheSuche`, {
+        search: query,
+      }),
+      bibliothecaRoute(system, 'bibliotheca-root-suche', `${normalizedRoot}/Suche`, { search: query }),
+      bibliothecaRoute(system, 'bibliotheca-root-suchergebnis-page', `${normalizedRoot}/Suchergebnis`, {
+        search: query,
+        startHit: String(startHit),
+      }),
+      bibliothecaRoute(system, 'bibliotheca-root-suchergebnis', `${normalizedRoot}/Suchergebnis`, {
+        search: query,
+      }),
+    ];
+  });
 };
 
 const sisisRoutes = (input: AdapterFallbackRouteInput): AdapterFallbackRouteCandidate[] => {
@@ -412,6 +512,9 @@ export const buildAdapterFallbackRoutes = (input: AdapterFallbackRouteInput): Ad
       break;
     case 'koha':
       generated = kohaRoutes(input);
+      break;
+    case 'bibliotheca':
+      generated = bibliothecaRoutes(input);
       break;
   }
 

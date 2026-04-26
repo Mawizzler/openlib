@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import { AdisAdapter } from '@/src/infrastructure/opac/adapters/AdisAdapter';
+import { BibliothecaAdapter } from '@/src/infrastructure/opac/adapters/BibliothecaAdapter';
 import { VuFindAdapter } from '@/src/infrastructure/opac/adapters/VuFindAdapter';
 import { WebOpacNetAdapter } from '@/src/infrastructure/opac/adapters/WebOpacNetAdapter';
 import {
@@ -78,6 +79,26 @@ const run = async () => {
     'https://catalog.example.org/search.aspx?SEARCHTERM=climate&Seite=2',
     'https://catalog.example.org/search.aspx?AKT_VALUE=climate&Seite=2',
   ]);
+
+  assert.deepEqual(routeUrls('bibliotheca', 'https://opac.winbiap.net/immenstadt/index.aspx'), [
+    'https://opac.winbiap.net/immenstadt/Mediensuche/EinfacheSuche?searchhash=&top=y&detail=0&search=climate',
+    'https://opac.winbiap.net/immenstadt/Mediensuche/EinfacheSuche?search=climate',
+    'https://opac.winbiap.net/immenstadt/Mediensuche?search=climate',
+    'https://opac.winbiap.net/immenstadt/Mediensuche/Suche?search=climate',
+    'https://opac.winbiap.net/immenstadt/Mediensuche/Suchergebnis?search=climate&startHit=21',
+    'https://opac.winbiap.net/immenstadt/Mediensuche/Suchergebnis?search=climate',
+    'https://opac.winbiap.net/immenstadt/EinfacheSuche?searchhash=&top=y&detail=0&search=climate',
+    'https://opac.winbiap.net/immenstadt/EinfacheSuche?search=climate',
+    'https://opac.winbiap.net/immenstadt/Suche?search=climate',
+    'https://opac.winbiap.net/immenstadt/Suchergebnis?search=climate&startHit=21',
+    'https://opac.winbiap.net/immenstadt/Suchergebnis?search=climate',
+  ]);
+  assert.ok(
+    routeUrls('bibliotheca', 'https://opac.winbiap.net/immenstadt/index.aspx').every(
+      (url) => !url.includes('/index.aspx/'),
+    ),
+    'expected bibliotheca fallback routes to strip endpoint-template suffixes before building candidates',
+  );
 
   assert.deepEqual(routeUrls('open', 'http://catalog.example.org/opac/search.aspx'), [
     'https://catalog.example.org/search.json?q=climate&page=2&limit=20',
@@ -162,6 +183,7 @@ const run = async () => {
   const originalFetch = globalThis.fetch;
   const calls: string[] = [];
   const fixture = readFileSync('scripts/fixtures/webopacnet-search-sample.html', 'utf8');
+  const bibliothecaFixture = readFileSync('scripts/tests/fixtures/bibliotheca-search-sample.html', 'utf8');
 
   globalThis.fetch = async (url) => {
     calls.push(String(url));
@@ -180,6 +202,38 @@ const run = async () => {
     assert.ok(calls[1].includes('SEARCHTERM=climate'));
   } finally {
     globalThis.fetch = originalFetch;
+  }
+
+  {
+    const bibliothecaCalls: string[] = [];
+    globalThis.fetch = async (url) => {
+      const target = String(url);
+      bibliothecaCalls.push(target);
+      if (bibliothecaCalls.length === 1) {
+        return new Response('missing', { status: 404 });
+      }
+      return new Response(bibliothecaFixture, { status: 200 });
+    };
+
+    try {
+      const adapter = new BibliothecaAdapter(
+        provider('bibliotheca', 'https://opac.winbiap.net/immenstadt/index.aspx'),
+      );
+      const result = await adapter.search({ query: 'climate', page: 1 });
+      assert.equal(result.records.length, 3);
+      assert.equal(bibliothecaCalls.length, 2);
+      assert.equal(
+        bibliothecaCalls[0],
+        'https://opac.winbiap.net/immenstadt/Mediensuche/EinfacheSuche?searchhash=&top=y&detail=0&search=climate',
+      );
+      assert.equal(
+        bibliothecaCalls[1],
+        'https://opac.winbiap.net/immenstadt/Mediensuche/EinfacheSuche?search=climate',
+      );
+      assert.ok(bibliothecaCalls.every((entry) => !entry.includes('/index.aspx/')));
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   }
 
   {
@@ -237,8 +291,9 @@ const run = async () => {
         return new Response(
           `
           <html><body>
-            <meta http-equiv="refresh" content="0; URL=/aDISWeb/app?service=direct/0/Home/$SearchForm&amp;sp=SOPAC00" />
-            <a href="/aDISWeb/app?service=direct/0/Home/$SearchForm&amp;sp=SOPAC00">Continue</a>
+            <script>
+              window.location.href = "/aDISWeb/app?service=direct/0/Home/$SearchForm&sp=SOPAC00";
+            </script>
           </body></html>
           `,
           {
@@ -289,6 +344,11 @@ const run = async () => {
       const result = await adapter.search({ query: 'climate', page: 1 });
       assert.equal(result.records.length, 1);
       assert.equal(calls.length, 5, 'expected bootstrap handoff GETs then POST fallback attempts for 9023 ADIS');
+      assert.deepEqual(
+        calls.map((entry) => entry.method),
+        ['GET', 'GET', 'POST', 'POST', 'POST'],
+        'expected GET handoff then POST fallback sequence for 9023 ADIS',
+      );
       assert.equal(calls[0].method, 'GET');
       assert.equal(calls[0].url, 'https://catalog.example.org/aDISWeb/app');
       assert.equal(calls[0].cookie, null);
@@ -312,6 +372,112 @@ const run = async () => {
       assert.deepEqual(calls[2].body.getAll('sp'), ['SOPAC00', 'SAKFreitext Sclimate']);
       assert.deepEqual(calls[3].body.getAll('sp'), ['SOPAC00', 'SAKSW Sclimate']);
       assert.deepEqual(calls[4].body.getAll('sp'), ['SOPAC00', 'SAKFreitext Sclimate']);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  }
+
+  {
+    const calls: Array<{
+      url: string;
+      method: string;
+      cookie: string | null;
+      contentType: string | null;
+      body: URLSearchParams;
+    }> = [];
+    globalThis.fetch = async (url, init) => {
+      const target = String(url);
+      const headers = new Headers(init?.headers);
+      const bodyText = init?.body ? String(init.body) : '';
+      const body = new URLSearchParams(bodyText);
+      calls.push({
+        url: target,
+        method: init?.method ?? 'GET',
+        cookie: headers.get('Cookie'),
+        contentType: headers.get('Content-Type'),
+        body,
+      });
+
+      if (calls.length === 1) {
+        return new Response(
+          `
+          <html><body>
+            <script>
+              window.location.href = "/aDISWeb/app?service=direct/0/Home/$SearchForm&sp=SOPAC00";
+            </script>
+          </body></html>
+          `,
+          {
+            status: 200,
+            headers: { 'x-openlib-proxy-set-cookie': 'SID=boot; Path=/; HttpOnly' },
+          },
+        );
+      }
+
+      if (calls.length === 2) {
+        return new Response(
+          `
+          <html><body>
+            <form action="/aDISWeb/app;jsessionid=XYZ" method="post">
+              <input type="hidden" name="service" value="direct/1/Home/$SearchForm.form" />
+              <input type="hidden" name="formToken" value="token-2" />
+              <input type="hidden" name="LNG" value="DU" />
+            </form>
+          </body></html>
+          `,
+          {
+            status: 200,
+            headers: { 'set-cookie': 'SID=handoff; Path=/; HttpOnly' },
+          },
+        );
+      }
+
+      if (calls.length === 3) {
+        return new Response('missing', {
+          status: 404,
+          headers: { 'set-cookie': 'SID=next; Path=/; HttpOnly' },
+        });
+      }
+
+      if (calls.length === 4) {
+        return new Response('missing', { status: 404 });
+      }
+
+      return new Response('{"total":1,"records":[{"id":"adis-9023","title":"Climate"}]}', {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    try {
+      const adapter = new AdisAdapter(
+        provider('adis', 'https://catalog.example.org/aDISWeb/app', '9023'),
+      );
+      const result = await adapter.search({ query: 'climate', page: 1 });
+      assert.equal(result.records.length, 1);
+      assert.equal(calls.length, 5, 'expected bootstrap handoff GETs then POST fallback attempts for 9023 ADIS');
+      assert.deepEqual(
+        calls.map((entry) => entry.method),
+        ['GET', 'GET', 'POST', 'POST', 'POST'],
+        'expected GET handoff then POST fallback sequence for 9023 ADIS',
+      );
+      assert.equal(calls[0].url, 'https://catalog.example.org/aDISWeb/app');
+      assert.equal(calls[1].url, 'https://catalog.example.org/aDISWeb/app?service=direct/0/Home/$SearchForm&sp=SOPAC00');
+      assert.equal(
+        calls[2].url,
+        'https://catalog.example.org/aDISWeb/app;jsessionid=XYZ?service=direct%2F1%2FHome%2F%24SearchForm.form',
+      );
+      assert.equal(calls[2].cookie, 'SID=handoff');
+      assert.equal(calls[3].cookie, 'SID=next');
+      assert.equal(calls[4].cookie, 'SID=next');
+      assert.ok(calls.slice(2).every((entry) => entry.contentType === 'application/x-www-form-urlencoded'));
+      assert.ok(calls.slice(2).every((entry) => entry.url.includes(';jsessionid=XYZ')));
+      assert.ok(calls.slice(2).every((entry) => entry.body.get('formToken') === 'token-2'));
+      assert.ok(calls.slice(2).every((entry) => entry.body.get('LNG') === 'DU'));
+      assert.deepEqual(
+        calls.slice(2).map((entry) => entry.body.get('service')),
+        ['direct/0/Home/$SearchForm', 'direct/0/Home/$SearchForm', 'direct/0/Home/$DirectLink'],
+      );
     } finally {
       globalThis.fetch = originalFetch;
     }

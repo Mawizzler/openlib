@@ -12,54 +12,11 @@ import type {
 } from '@/src/domain/models/opac';
 import type { OpacappNormalizedProvider } from '@/src/domain/models/opacapp';
 import { parseBibliothecaSearchResults } from '@/src/infrastructure/opac/parsers/bibliotheca/parseBibliothecaSearchResults';
+import { buildAdapterFallbackRoutes } from '@/src/infrastructure/opac/transport/adapterFallbackRoutes';
 
 const DEFAULT_PAGE_SIZE = 20;
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '');
-
-const buildCandidateSearchUrls = (baseUrl: string, query: string, page: number): string[] => {
-  const q = encodeURIComponent(query.trim());
-  const startHit = Math.max(1, (page - 1) * DEFAULT_PAGE_SIZE + 1);
-  const root = trimTrailingSlash(baseUrl);
-  const lowerRoot = root.toLowerCase();
-  const rootPath = (() => {
-    try {
-      return new URL(root).pathname.toLowerCase().replace(/\/+$/, '');
-    } catch {
-      return '';
-    }
-  })();
-  const hasTenantPath = Boolean(rootPath && rootPath !== '/' && rootPath !== '/webopac');
-
-  const roots = [
-    root,
-    ...(hasTenantPath || lowerRoot.includes('/webopac') ? [] : [`${root}/webopac`]),
-    ...(lowerRoot.includes('/mediensuche') ? [] : [`${root}/Mediensuche`]),
-  ];
-
-  const urls: string[] = [];
-  for (const candidateRoot of roots) {
-    const normalizedRoot = trimTrailingSlash(candidateRoot);
-    const rootHasMediensuche = normalizedRoot.toLowerCase().endsWith('/mediensuche');
-    const medienPrefix = rootHasMediensuche ? normalizedRoot : `${normalizedRoot}/Mediensuche`;
-
-    urls.push(
-      `${medienPrefix}/EinfacheSuche?searchhash=&top=y&detail=0&search=${q}`,
-      `${medienPrefix}/EinfacheSuche?search=${q}`,
-      `${medienPrefix}?search=${q}`,
-      `${medienPrefix}/Suche?search=${q}`,
-      `${medienPrefix}/Suchergebnis?search=${q}&startHit=${startHit}`,
-      `${medienPrefix}/Suchergebnis?search=${q}`,
-      `${normalizedRoot}/EinfacheSuche?searchhash=&top=y&detail=0&search=${q}`,
-      `${normalizedRoot}/EinfacheSuche?search=${q}`,
-      `${normalizedRoot}/Suche?search=${q}`,
-      `${normalizedRoot}/Suchergebnis?search=${q}&startHit=${startHit}`,
-      `${normalizedRoot}/Suchergebnis?search=${q}`,
-    );
-  }
-
-  return [...new Set(urls)];
-};
 
 export class BibliothecaAdapter implements LibrarySystemAdapter {
   readonly system = 'bibliotheca';
@@ -82,10 +39,18 @@ export class BibliothecaAdapter implements LibrarySystemAdapter {
       return { total: 0, page, pageSize: DEFAULT_PAGE_SIZE, records: [] };
     }
 
-    const candidateUrls = buildCandidateSearchUrls(baseUrl, query, page);
+    const { candidates } = buildAdapterFallbackRoutes({
+      system: this.system,
+      baseUrl,
+      query,
+      page,
+      pageSize: DEFAULT_PAGE_SIZE,
+      providerId: this.provider.id,
+    });
     let lastError: string | undefined;
 
-    for (const url of candidateUrls) {
+    for (const candidate of candidates) {
+      const url = candidate.url;
       try {
         const response = await fetch(url, {
           method: 'GET',
