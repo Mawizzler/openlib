@@ -48,6 +48,11 @@ type Adis9023Bootstrap = {
   hiddenFields: Array<readonly [string, string]>;
 };
 
+type Adis9023BootstrapHandoff = {
+  metaRefreshUrl: string | null;
+  directAnchorUrl: string | null;
+};
+
 const buildDiagnostics = (
   kind: OpacSearchFailureKind,
   message: string,
@@ -276,22 +281,37 @@ export class AdisAdapter implements LibrarySystemAdapter {
   }
 
   private async bootstrap9023SearchSession(session: Adis9023SessionState): Promise<Adis9023Bootstrap> {
-    const bootstrapUrl = this.resolveNormalizedProviderBaseUrl();
-    const body = await fetchTextWithRetry(
-      bootstrapUrl,
-      {
-        headers: this.buildAdisRequestHeaders(session),
-      },
-      {
-        onResponse: (response) => this.captureCookies(response, session),
-      },
-    );
+    let currentUrl = this.resolveNormalizedProviderBaseUrl();
+    const maxHops = 2;
+    for (let hop = 0; hop <= maxHops; hop += 1) {
+      const body = await fetchTextWithRetry(
+        currentUrl,
+        {
+          headers: this.buildAdisRequestHeaders(session),
+        },
+        {
+          onResponse: (response) => this.captureCookies(response, session),
+        },
+      );
 
-    const parsed = this.parse9023FormBootstrap(body, bootstrapUrl);
-    if (!parsed) {
-      throw new Error('ADIS 9023 bootstrap did not contain a usable direct/1 *.form action');
+      const parsed = this.parse9023FormBootstrap(body, currentUrl);
+      if (parsed) {
+        return parsed;
+      }
+
+      if (hop >= maxHops) {
+        break;
+      }
+
+      const handoff = this.parse9023BootstrapHandoff(body, currentUrl);
+      const nextUrl = handoff.metaRefreshUrl ?? handoff.directAnchorUrl;
+      if (!nextUrl) {
+        break;
+      }
+      currentUrl = nextUrl;
     }
-    return parsed;
+
+    throw new Error('ADIS 9023 bootstrap did not contain a usable direct/1 *.form action');
   }
 
   private parse9023FormBootstrap(html: string, bootstrapUrl: string): Adis9023Bootstrap | null {
@@ -313,6 +333,64 @@ export class AdisAdapter implements LibrarySystemAdapter {
       const actionUrl = new URL(action, bootstrapUrl).toString();
       const hiddenFields = this.extractHiddenFields(formMatch[2] ?? '');
       return { actionUrl, hiddenFields };
+    }
+
+    return null;
+  }
+
+  private parse9023BootstrapHandoff(html: string, pageUrl: string): Adis9023BootstrapHandoff {
+    const metaRefreshUrl = this.extractMetaRefreshUrl(html, pageUrl);
+    const directAnchorUrl = this.extractDirect0AnchorUrl(html, pageUrl);
+    return { metaRefreshUrl, directAnchorUrl };
+  }
+
+  private extractMetaRefreshUrl(html: string, pageUrl: string): string | null {
+    const metaPattern = /<meta\b([^>]*)>/gi;
+    let metaMatch: RegExpExecArray | null = null;
+    while ((metaMatch = metaPattern.exec(html)) !== null) {
+      const attrs = metaMatch[1] ?? '';
+      const httpEquiv = (this.readHtmlAttribute(attrs, 'http-equiv') ?? '').trim().toLowerCase();
+      if (httpEquiv !== 'refresh') {
+        continue;
+      }
+
+      const content = this.decodeHtmlEntities(this.readHtmlAttribute(attrs, 'content') ?? '');
+      const refreshMatch = content.match(/(?:^|;)\s*url\s*=\s*(['"]?)([^'";]+)\1/i);
+      const refreshTarget = refreshMatch?.[2]?.trim();
+      if (!refreshTarget) {
+        continue;
+      }
+
+      try {
+        return new URL(refreshTarget, pageUrl).toString();
+      } catch {
+        continue;
+      }
+    }
+
+    return null;
+  }
+
+  private extractDirect0AnchorUrl(html: string, pageUrl: string): string | null {
+    const anchorPattern = /<a\b([^>]*)>/gi;
+    let anchorMatch: RegExpExecArray | null = null;
+    while ((anchorMatch = anchorPattern.exec(html)) !== null) {
+      const attrs = anchorMatch[1] ?? '';
+      const hrefRaw = this.readHtmlAttribute(attrs, 'href');
+      if (!hrefRaw) {
+        continue;
+      }
+
+      const href = this.decodeHtmlEntities(hrefRaw);
+      if (!href.toLowerCase().includes('service=direct/0/')) {
+        continue;
+      }
+
+      try {
+        return new URL(href, pageUrl).toString();
+      } catch {
+        continue;
+      }
     }
 
     return null;
