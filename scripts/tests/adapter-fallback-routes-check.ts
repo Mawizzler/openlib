@@ -237,10 +237,8 @@ const run = async () => {
         return new Response(
           `
           <html><body>
-            <form action="/aDISWeb/app?service=direct/1/Home/$SearchForm.form&amp;sp=SFORM" method="post">
-              <input type="hidden" name="formToken" value="token-1" />
-              <input type="hidden" name="LNG" value="DU" />
-            </form>
+            <meta http-equiv="refresh" content="0; URL=/aDISWeb/app?service=direct/0/Home/$SearchForm&amp;sp=SOPAC00" />
+            <a href="/aDISWeb/app?service=direct/0/Home/$SearchForm&amp;sp=SOPAC00">Continue</a>
           </body></html>
           `,
           {
@@ -251,13 +249,30 @@ const run = async () => {
       }
 
       if (calls.length === 2) {
+        return new Response(
+          `
+          <html><body>
+            <form action="/aDISWeb/app?service=direct/1/Home/$SearchForm.form&amp;sp=SFORM" method="post">
+              <input type="hidden" name="formToken" value="token-1" />
+              <input type="hidden" name="LNG" value="DU" />
+            </form>
+          </body></html>
+          `,
+          {
+            status: 200,
+            headers: { 'set-cookie': 'SID=handoff; Path=/; HttpOnly' },
+          },
+        );
+      }
+
+      if (calls.length === 3) {
         return new Response('missing', {
           status: 404,
           headers: { 'set-cookie': 'SID=next; Path=/; HttpOnly' },
         });
       }
 
-      if (calls.length === 3) {
+      if (calls.length === 4) {
         return new Response('missing', { status: 404 });
       }
 
@@ -273,27 +288,30 @@ const run = async () => {
       );
       const result = await adapter.search({ query: 'climate', page: 1 });
       assert.equal(result.records.length, 1);
-      assert.equal(calls.length, 4, 'expected bootstrap GET then POST fallback attempts for 9023 ADIS');
+      assert.equal(calls.length, 5, 'expected bootstrap handoff GETs then POST fallback attempts for 9023 ADIS');
       assert.equal(calls[0].method, 'GET');
       assert.equal(calls[0].url, 'https://catalog.example.org/aDISWeb/app');
       assert.equal(calls[0].cookie, null);
-      assert.equal(calls[1].method, 'POST');
+      assert.equal(calls[1].method, 'GET');
+      assert.equal(calls[1].url, 'https://catalog.example.org/aDISWeb/app?service=direct/0/Home/$SearchForm&sp=SOPAC00');
+      assert.equal(calls[1].cookie, 'SID=boot');
       assert.equal(calls[2].method, 'POST');
       assert.equal(calls[3].method, 'POST');
-      assert.ok(calls.slice(1).every((entry) => entry.contentType === 'application/x-www-form-urlencoded'));
-      assert.ok(calls.slice(1).every((entry) => new URL(entry.url).pathname.startsWith('/aDISWeb/app')));
+      assert.equal(calls[4].method, 'POST');
+      assert.ok(calls.slice(2).every((entry) => entry.contentType === 'application/x-www-form-urlencoded'));
+      assert.ok(calls.slice(2).every((entry) => new URL(entry.url).pathname.startsWith('/aDISWeb/app')));
       assert.deepEqual(
-        calls.slice(1).map((entry) => entry.body.get('service')),
+        calls.slice(2).map((entry) => entry.body.get('service')),
         ['direct/0/Home/$SearchForm', 'direct/0/Home/$SearchForm', 'direct/0/Home/$DirectLink'],
       );
-      assert.equal(calls[1].cookie, 'SID=boot');
-      assert.equal(calls[2].cookie, 'SID=next');
+      assert.equal(calls[2].cookie, 'SID=handoff');
       assert.equal(calls[3].cookie, 'SID=next');
-      assert.ok(calls.slice(1).every((entry) => entry.body.get('formToken') === 'token-1'));
-      assert.ok(calls.slice(1).every((entry) => entry.body.get('LNG') === 'DU'));
-      assert.deepEqual(calls[1].body.getAll('sp'), ['SOPAC00', 'SAKFreitext Sclimate']);
-      assert.deepEqual(calls[2].body.getAll('sp'), ['SOPAC00', 'SAKSW Sclimate']);
-      assert.deepEqual(calls[3].body.getAll('sp'), ['SOPAC00', 'SAKFreitext Sclimate']);
+      assert.equal(calls[4].cookie, 'SID=next');
+      assert.ok(calls.slice(2).every((entry) => entry.body.get('formToken') === 'token-1'));
+      assert.ok(calls.slice(2).every((entry) => entry.body.get('LNG') === 'DU'));
+      assert.deepEqual(calls[2].body.getAll('sp'), ['SOPAC00', 'SAKFreitext Sclimate']);
+      assert.deepEqual(calls[3].body.getAll('sp'), ['SOPAC00', 'SAKSW Sclimate']);
+      assert.deepEqual(calls[4].body.getAll('sp'), ['SOPAC00', 'SAKFreitext Sclimate']);
     } finally {
       globalThis.fetch = originalFetch;
     }
