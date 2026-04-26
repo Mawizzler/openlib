@@ -123,20 +123,31 @@ const run = async () => {
   assert.equal(adisHttpRoutes.length, 16);
   assert.ok(adisHttpRoutes.every((url) => url.startsWith('http://')));
   const adisProvider9023Routes = routeUrls('adis', 'https://catalog.example.org/aDISWeb/app', '9023');
-  assert.equal(adisProvider9023Routes.length, 8);
+  assert.equal(adisProvider9023Routes.length, 16);
   assert.ok(
     adisProvider9023Routes.every((url) => new URL(url).pathname.startsWith('/aDISWeb/app')),
     'expected provider 9023 ADIS routes to keep aDISWeb app path',
   );
   assert.equal(
     adisProvider9023Routes[0],
-    'https://catalog.example.org/aDISWeb/app/?service=direct%2F0%2FHome%2F%24SearchForm&searchMask=&XSLT_DB=10&sp=SOPAC00&sp=SAKFreitext+Sclimate',
+    'https://catalog.example.org/aDISWeb/app/?service=direct%2F0%2FHome%2F%24SearchForm&sp=SOPAC00&sp=SAKFreitext+Sclimate',
   );
   const first9023Url = new URL(adisProvider9023Routes[0]);
   assert.deepEqual(first9023Url.searchParams.getAll('sp'), ['SOPAC00', 'SAKFreitext Sclimate']);
   assert.equal(first9023Url.searchParams.get('service'), 'direct/0/Home/$SearchForm');
-  assert.equal(first9023Url.searchParams.get('searchMask'), '');
-  assert.equal(first9023Url.searchParams.get('XSLT_DB'), '10');
+  assert.equal(first9023Url.searchParams.get('searchMask'), null);
+  assert.equal(first9023Url.searchParams.get('XSLT_DB'), null);
+  assert.ok(
+    adisProvider9023Routes.some((url) => {
+      const parsed = new URL(url);
+      return (
+        parsed.searchParams.get('service') === 'direct/0/Home/$SearchForm' &&
+        parsed.searchParams.get('XSLT_DB') === '1' &&
+        parsed.searchParams.getAll('sp')[0] === 'SOPAC00'
+      );
+    }),
+    'expected provider 9023 ADIS routes to include XSLT_DB=1 SOPAC00 combined variant',
+  );
   const adisNon9023Routes = routeUrls('adis', 'https://catalog.example.org/aDISWeb/app', '9010');
   assert.ok(
     adisNon9023Routes.every((url) => !new URL(url).pathname.startsWith('/aDISWeb/app/')),
