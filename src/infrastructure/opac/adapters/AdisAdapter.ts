@@ -39,6 +39,15 @@ type FetchCandidateResult = {
   payload: AdisSearchPayload;
 };
 
+type Adis9023SessionState = {
+  cookie?: string;
+};
+
+type Adis9023Bootstrap = {
+  actionUrl: string;
+  hiddenFields: Array<readonly [string, string]>;
+};
+
 const buildDiagnostics = (
   kind: OpacSearchFailureKind,
   message: string,
@@ -151,11 +160,15 @@ export class AdisAdapter implements LibrarySystemAdapter {
   }
 
   private normalizeBaseUrl() {
+    return this.resolveNormalizedProviderBaseUrl().replace(/\/+$/, '');
+  }
+
+  private resolveNormalizedProviderBaseUrl() {
     const candidate = (this.provider.baseUrl ?? '').trim();
     return (
       normalizeProviderBaseUrl(candidate, { api: this.system, providerId: this.provider.id }).normalizedUrl ??
       candidate
-    ).replace(/\/+$/, '');
+    );
   }
 
   private async fetchSearchPayload(query: string, page: number): Promise<FetchCandidateResult> {
@@ -171,6 +184,10 @@ export class AdisAdapter implements LibrarySystemAdapter {
       providerId: this.provider.id,
     });
 
+    if (String(this.provider.id) === '9023') {
+      return this.fetch9023SessionBoundSearchPayload(candidates);
+    }
+
     for (const candidate of candidates) {
       const family = this.pathnameFamily(candidate.url);
       if (family && exhausted404Families.has(family)) {
@@ -185,6 +202,36 @@ export class AdisAdapter implements LibrarySystemAdapter {
         attempts.push(`${candidate.url}: ${message}`);
         if (!isHttp404Error(error)) {
           throw error;
+        }
+        if (family) {
+          exhausted404Families.add(family);
+        }
+      }
+    }
+
+    throw new Error(`ADIS search failed for all candidate endpoints. ${attempts.join(' | ')}`);
+  }
+
+  private async fetch9023SessionBoundSearchPayload(candidates: { url: string }[]): Promise<FetchCandidateResult> {
+    const attempts: string[] = [];
+    const exhausted404Families = new Set<string>();
+    const session: Adis9023SessionState = {};
+    const bootstrap = await this.bootstrap9023SearchSession(session);
+
+    for (const candidate of candidates) {
+      const family = this.pathnameFamily(candidate.url);
+      if (family && exhausted404Families.has(family)) {
+        continue;
+      }
+
+      try {
+        const payload = await this.fetch9023Candidate(bootstrap, session, candidate.url);
+        return { url: candidate.url, payload };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        attempts.push(`${candidate.url}: ${message}`);
+        if (!isHttp404Error(error)) {
+          continue;
         }
         if (family) {
           exhausted404Families.add(family);
@@ -226,6 +273,213 @@ export class AdisAdapter implements LibrarySystemAdapter {
     }
 
     return payload;
+  }
+
+  private async bootstrap9023SearchSession(session: Adis9023SessionState): Promise<Adis9023Bootstrap> {
+    const bootstrapUrl = this.resolveNormalizedProviderBaseUrl();
+    const body = await fetchTextWithRetry(
+      bootstrapUrl,
+      {
+        headers: this.buildAdisRequestHeaders(session),
+      },
+      {
+        onResponse: (response) => this.captureCookies(response, session),
+      },
+    );
+
+    const parsed = this.parse9023FormBootstrap(body, bootstrapUrl);
+    if (!parsed) {
+      throw new Error('ADIS 9023 bootstrap did not contain a usable direct/1 *.form action');
+    }
+    return parsed;
+  }
+
+  private parse9023FormBootstrap(html: string, bootstrapUrl: string): Adis9023Bootstrap | null {
+    const formPattern = /<form\b([^>]*)>([\s\S]*?)<\/form>/gi;
+    let formMatch: RegExpExecArray | null = null;
+    while ((formMatch = formPattern.exec(html)) !== null) {
+      const openTagAttrs = formMatch[1] ?? '';
+      const actionRaw = this.readHtmlAttribute(openTagAttrs, 'action');
+      if (!actionRaw) {
+        continue;
+      }
+
+      const action = this.decodeHtmlEntities(actionRaw);
+      const lowerAction = action.toLowerCase();
+      if (!lowerAction.includes('service=direct/1/') || !lowerAction.includes('.form')) {
+        continue;
+      }
+
+      const actionUrl = new URL(action, bootstrapUrl).toString();
+      const hiddenFields = this.extractHiddenFields(formMatch[2] ?? '');
+      return { actionUrl, hiddenFields };
+    }
+
+    return null;
+  }
+
+  private extractHiddenFields(html: string): Array<readonly [string, string]> {
+    const fields: Array<readonly [string, string]> = [];
+    const inputPattern = /<input\b([^>]*)>/gi;
+    let inputMatch: RegExpExecArray | null = null;
+    while ((inputMatch = inputPattern.exec(html)) !== null) {
+      const attrs = inputMatch[1] ?? '';
+      const type = (this.readHtmlAttribute(attrs, 'type') ?? '').trim().toLowerCase();
+      if (type !== 'hidden') {
+        continue;
+      }
+
+      const name = this.readHtmlAttribute(attrs, 'name');
+      if (!name) {
+        continue;
+      }
+
+      const value = this.readHtmlAttribute(attrs, 'value') ?? '';
+      fields.push([this.decodeHtmlEntities(name), this.decodeHtmlEntities(value)]);
+    }
+
+    return fields;
+  }
+
+  private readHtmlAttribute(attrs: string, attribute: string): string | null {
+    const escaped = attribute.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(
+      `\\b${escaped}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'=<>\\\`]+))`,
+      'i',
+    );
+    const match = attrs.match(pattern);
+    return match?.[1] ?? match?.[2] ?? match?.[3] ?? null;
+  }
+
+  private decodeHtmlEntities(value: string): string {
+    return value
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'");
+  }
+
+  private async fetch9023Candidate(
+    bootstrap: Adis9023Bootstrap,
+    session: Adis9023SessionState,
+    candidateUrl: string,
+  ): Promise<AdisSearchPayload> {
+    const body = await fetchTextWithRetry(
+      bootstrap.actionUrl,
+      {
+        method: 'POST',
+        headers: {
+          ...this.buildAdisRequestHeaders(session),
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: this.build9023PostBody(bootstrap.hiddenFields, candidateUrl),
+      },
+      {
+        onResponse: (response) => this.captureCookies(response, session),
+      },
+    );
+    const payload = this.extractPayload(body);
+    if (!payload) {
+      throw new Error('response body did not contain an ADIS-like search payload');
+    }
+
+    return payload;
+  }
+
+  private buildAdisRequestHeaders(session: Adis9023SessionState): Record<string, string> {
+    return {
+      Accept: 'application/json,text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+      'User-Agent': 'openlib-adis-adapter',
+      ...(session.cookie ? { Cookie: session.cookie } : {}),
+    };
+  }
+
+  private build9023PostBody(
+    hiddenFields: Array<readonly [string, string]>,
+    candidateUrl: string,
+  ): URLSearchParams {
+    const params = new URLSearchParams();
+    hiddenFields.forEach(([key, value]) => params.append(key, value));
+
+    const candidate = new URL(candidateUrl);
+    if (candidate.searchParams.has('service')) {
+      params.set('service', candidate.searchParams.get('service') ?? '');
+    }
+    if (candidate.searchParams.has('searchMask')) {
+      params.set('searchMask', candidate.searchParams.get('searchMask') ?? '');
+    }
+    if (candidate.searchParams.has('XSLT_DB')) {
+      params.set('XSLT_DB', candidate.searchParams.get('XSLT_DB') ?? '');
+    }
+    candidate.searchParams.getAll('sp').forEach((value) => params.append('sp', value));
+
+    return params;
+  }
+
+  private captureCookies(response: Response, session: Adis9023SessionState) {
+    try {
+      const headerValues = [
+        response.headers.get('set-cookie'),
+        response.headers.get('x-openlib-proxy-set-cookie'),
+      ].filter((value): value is string => Boolean(value));
+      if (headerValues.length === 0) {
+        return;
+      }
+
+      const incomingCookies = headerValues.flatMap((value) => this.extractCookiePairs(value));
+      if (incomingCookies.length === 0) {
+        return;
+      }
+
+      session.cookie = this.mergeCookies(session.cookie, incomingCookies);
+    } catch {
+      // Ignore cookie parsing failures and continue probing fallbacks.
+    }
+  }
+
+  private extractCookiePairs(setCookieHeader: string): string[] {
+    const pairs: string[] = [];
+    const pattern = /(?:^|,)\s*([^=;,\s]+)=([^;,\r\n]*)/g;
+    let match: RegExpExecArray | null = null;
+    while ((match = pattern.exec(setCookieHeader)) !== null) {
+      pairs.push(`${match[1]}=${match[2]}`);
+    }
+    return pairs;
+  }
+
+  private mergeCookies(currentCookieHeader: string | undefined, incomingPairs: string[]): string {
+    const merged = new Map<string, string>();
+
+    if (currentCookieHeader) {
+      currentCookieHeader
+        .split(';')
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .forEach((part) => {
+          const separatorIndex = part.indexOf('=');
+          if (separatorIndex <= 0) return;
+          const key = part.slice(0, separatorIndex).trim();
+          const value = part.slice(separatorIndex + 1).trim();
+          if (key && value) {
+            merged.set(key, value);
+          }
+        });
+    }
+
+    incomingPairs.forEach((pair) => {
+      const separatorIndex = pair.indexOf('=');
+      if (separatorIndex <= 0) return;
+      const key = pair.slice(0, separatorIndex).trim();
+      const value = pair.slice(separatorIndex + 1).trim();
+      if (key && value) {
+        merged.set(key, value);
+      }
+    });
+
+    return Array.from(merged.entries())
+      .map(([key, value]) => `${key}=${value}`)
+      .join('; ');
   }
 
   private extractPayload(body: string): AdisSearchPayload | null {
